@@ -158,6 +158,7 @@ void drawSensorStatus() {
   gfx->setCursor(87, 73);
   gfx->print("Light: ");
   gfx->printf("%.0f", previousSensors.lightLevel);
+  gfx->print(" lx");
   
   uint16_t lightColor = getStatusColor(currentSensors.lightLevel, 800, 1200, 600, 1500, 400, 1800);
   gfx->setTextColor(WHITE);
@@ -165,6 +166,7 @@ void drawSensorStatus() {
   gfx->print("Light: ");
   gfx->setTextColor(lightColor);
   gfx->printf("%.0f", currentSensors.lightLevel);
+  gfx->print(" lx");
   
   // CO2 Level - clear previous, then draw new immediately
   gfx->setTextColor(BLACK);  

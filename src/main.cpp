@@ -4,6 +4,7 @@
 
 void setup() {
   Serial.begin(115200);
+
   Serial.println("Starting Hydroponic Tower Dashboard...");
   
   // Initialize display
@@ -31,5 +32,5 @@ void loop() {
   // Update previous values for next clearing cycle
   updatePreviousValues();
   
-  delay(5000);  // Update every 5 seconds
+  delay(1000);  // Update every 5 seconds
 }
