@@ -76,7 +76,6 @@ void initSensors() {
 }
 
 void updateSensorValues() {
-  // Simulate real sensor readings - replace with actual sensor code
   currentSensors.waterLevel = !digitalRead(waterLevelPin); // The water level  sensor reads LOW when water is present and HIGH there isn't
   currentSensors.co2Level = myMHZ19.getCO2(); // Request CO2 (as ppm)
   currentSensors.waterPH = 3.5*(analogRead(waterPhPin)*5*1.5/4096.)+phOffset; // Convert the analog value to pH (*1.5 because of the voltage divider)

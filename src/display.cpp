@@ -33,37 +33,14 @@ void drawHydroponicTower() {
   gfx->fillRect(110, 90, 20, 200, DARKGREY);   // Main tower pipe (extends to Y=290)
   gfx->drawRect(110, 90, 20, 200, WHITE);      // Pipe outline
   
-  // Growing levels (plant sites) - from bottom to top
-  // Level 1 (bottom)
-  gfx->fillCircle(100, 260, 15, BROWN);        // Growing cup
-  gfx->fillCircle(140, 260, 15, BROWN);        // Growing cup
-  gfx->fillCircle(100, 260, 8, GREEN);         // Plant
-  gfx->fillCircle(140, 260, 8, GREEN);         // Plant
-  
-  // Level 2
-  gfx->fillCircle(100, 220, 15, BROWN);        // Growing cup
-  gfx->fillCircle(140, 220, 15, BROWN);        // Growing cup
-  gfx->fillCircle(100, 220, 8, GREEN);         // Plant
-  gfx->fillCircle(140, 220, 8, GREEN);         // Plant
-  
-  // Level 3
-  gfx->fillCircle(100, 180, 15, BROWN);        // Growing cup
-  gfx->fillCircle(140, 180, 15, BROWN);        // Growing cup
-  gfx->fillCircle(100, 180, 8, GREEN);         // Plant
-  gfx->fillCircle(140, 180, 8, GREEN);         // Plant
-  
-  // Level 4
-  gfx->fillCircle(100, 140, 15, BROWN);        // Growing cup
-  gfx->fillCircle(140, 140, 15, BROWN);        // Growing cup
-  gfx->fillCircle(100, 140, 8, GREEN);         // Plant
-  gfx->fillCircle(140, 140, 8, GREEN);         // Plant
-  
-  // Level 5 (top)
-  gfx->fillCircle(100, 100, 15, BROWN);        // Growing cup
-  gfx->fillCircle(140, 100, 15, BROWN);        // Growing cup
-  gfx->fillCircle(100, 100, 8, GREEN);         // Plant
-  gfx->fillCircle(140, 100, 8, GREEN);         // Plant
-  
+   // Growing levels (plant sites) - using loop
+  int plantY[] = {260, 220, 180, 140, 100};
+  for (int i = 0; i < 5; i++) {
+    gfx->fillCircle(100, plantY[i], 15, BROWN);  // Left growing cup
+    gfx->fillCircle(140, plantY[i], 15, BROWN);  // Right growing cup
+    gfx->fillCircle(100, plantY[i], 8, GREEN);   // Left plant
+    gfx->fillCircle(140, plantY[i], 8, GREEN);   // Right plant
+  }
   // Water flow lines (showing nutrient flow)
   gfx->drawLine(120, 95, 120, 285, CYAN);      // Water flow down
   gfx->drawLine(115, 100, 115, 285, CYAN);     // Water flow down
