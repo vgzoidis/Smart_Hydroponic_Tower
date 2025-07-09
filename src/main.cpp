@@ -2,6 +2,8 @@
 #include "display.h"
 #include "sensors.h"
 
+#define measureInterval 1000 //Measure interval, 1000 milliseconds
+
 void setup() {
   Serial.begin(115200);
 
@@ -32,5 +34,5 @@ void loop() {
   // Update previous values for next clearing cycle
   updatePreviousValues();
   
-  delay(1000);  // Update every 5 seconds
+  delay(2000);  // Update every 5 seconds
 }
