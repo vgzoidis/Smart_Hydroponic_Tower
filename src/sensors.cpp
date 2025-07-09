@@ -34,26 +34,26 @@ BH1750 lightMeter; //Light sensor object
 
 // Global sensor data
 SensorData currentSensors = {
-  .waterLevel = true,
-  .co2Level = 450.0,
-  .waterPH = 7.3,
-  .waterTemp = 22.5,
-  .envTemp = 25.0,
-  .envHumidity = 65.0,
-  .lightLevel = 850.0,
-  .pumpStatus = true
+  .waterLevel = false,
+  .co2Level = 0,
+  .waterPH = 0.0,
+  .waterTemp = 0.0,
+  .envTemp = 0.0,
+  .envHumidity = 0.0,
+  .lightLevel = 0.0,
+  .pumpStatus = false
 };
 
 // Previous values for clearing old text
 PreviousValues previousSensors = {
-  .waterLevel = true,
-  .co2Level = 450.0,
-  .waterPH = 7.3,
-  .waterTemp = 22.5,
-  .envTemp = 25.0,
-  .envHumidity = 65.0,
-  .lightLevel = 850.0,
-  .pumpStatus = true
+  .waterLevel = false,
+  .co2Level = 0,
+  .waterPH = 0.0,
+  .waterTemp = 0.0,
+  .envTemp = 0.0,
+  .envHumidity = 0.0,
+  .lightLevel = 0.0,
+  .pumpStatus = false
 };
 
 void initSensors() {
@@ -86,16 +86,6 @@ void updateSensorValues() {
   currentSensors.envHumidity = dht.readHumidity(); // Read humidity from DHT22 sensor
   currentSensors.lightLevel = lightMeter.readLightLevel(); // measured in lux
   currentSensors.pumpStatus = false;    // Mock pump status
-  
-  // TODO: Replace above with actual sensor readings:
-  // currentSensors.waterLevel = readWaterLevelSensor();
-  // currentSensors.co2Level = readCO2Sensor();
-  // currentSensors.waterPH = readPHSensor();
-  // currentSensors.waterTemp = readWaterTempSensor();
-  // currentSensors.envTemp = readEnvTempSensor();
-  // currentSensors.envHumidity = readHumiditySensor();
-  // currentSensors.lightLevel = readLightSensor();
-  // currentSensors.pumpStatus = getPumpStatus();
 }
 
 void updatePreviousValues() {

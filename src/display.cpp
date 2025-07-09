@@ -5,6 +5,9 @@
 Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, -1 /* MISO not used */);
 Arduino_GFX *gfx = new Arduino_ST7789(bus, TFT_RST, 0 /* rotation */, true /* IPS */, 240, 320);
 
+// Startup flag to show initial status
+static bool isStartup = true;
+
 void initDisplay() {
   gfx->begin();
   gfx->fillScreen(BLACK);
@@ -82,7 +85,7 @@ void drawSensorStatus() {
   gfx->print("H2O: ");
   gfx->printf("%.1fC", previousSensors.waterTemp);
   
-  uint16_t waterTempColor = getStatusColor(currentSensors.waterTemp, 18, 24, 15, 28, 12, 32);
+  uint16_t waterTempColor = getStatusColor(currentSensors.waterTemp, 24, 26, 20, 28, 12, 32);
   gfx->setTextColor(WHITE);
   gfx->setCursor(15, 290);
   gfx->print("H2O: ");
@@ -95,7 +98,7 @@ void drawSensorStatus() {
   gfx->print("pH: ");
   gfx->printf("%.1f", previousSensors.waterPH);
   
-  uint16_t phColor = getStatusColor(currentSensors.waterPH, 5.8, 6.5, 5.5, 7.0, 5.0, 7.5);
+  uint16_t phColor = getStatusColor(currentSensors.waterPH, 7, 9, 5, 10, 4, 11);
   gfx->setTextColor(WHITE);
   gfx->setCursor(15, 300);
   gfx->print("pH: ");
@@ -129,26 +132,26 @@ void drawSensorStatus() {
   
   // Environment Temperature - clear previous, then draw new immediately
   gfx->setTextColor(BLACK);  
-  gfx->setCursor(172, 98);
+  gfx->setCursor(162, 105);
   gfx->print("Temp: ");
   gfx->printf("%.1fC", previousSensors.envTemp);
   
-  uint16_t envTempColor = getStatusColor(currentSensors.envTemp, 20, 26, 18, 30, 15, 35);
+  uint16_t envTempColor = getStatusColor(currentSensors.envTemp, 24, 26, 20, 28, 12, 32);
   gfx->setTextColor(WHITE);
-  gfx->setCursor(172, 98);
+  gfx->setCursor(162, 105);
   gfx->print("Temp: ");
   gfx->setTextColor(envTempColor);
   gfx->printf("%.1fC", currentSensors.envTemp);
   
   // Environment Humidity - clear previous, then draw new immediately
   gfx->setTextColor(BLACK);  
-  gfx->setCursor(172, 113);
+  gfx->setCursor(162, 120);
   gfx->print("Hum: ");
   gfx->printf("%.0f%%", previousSensors.envHumidity);
   
-  uint16_t humidityColor = getStatusColor(currentSensors.envHumidity, 50, 70, 40, 80, 30, 90);
+  uint16_t humidityColor = getStatusColor(currentSensors.envHumidity, 40, 70, 30, 80, 20, 90);
   gfx->setTextColor(WHITE);
-  gfx->setCursor(172, 113);
+  gfx->setCursor(162, 120);
   gfx->print("Hum: ");
   gfx->setTextColor(humidityColor);
   gfx->printf("%.0f%%", currentSensors.envHumidity);
@@ -160,7 +163,7 @@ void drawSensorStatus() {
   gfx->printf("%.0f", previousSensors.lightLevel);
   gfx->print(" lx");
   
-  uint16_t lightColor = getStatusColor(currentSensors.lightLevel, 800, 1200, 600, 1500, 400, 1800);
+  uint16_t lightColor = getStatusColor(currentSensors.lightLevel, 10, 1200, 5, 1500, 2, 1800);
   gfx->setTextColor(WHITE);
   gfx->setCursor(87, 73);
   gfx->print("Light: ");
@@ -170,23 +173,54 @@ void drawSensorStatus() {
   
   // CO2 Level - clear previous, then draw new immediately
   gfx->setTextColor(BLACK);  
-  gfx->setCursor(172, 183);
+  gfx->setCursor(162, 167);
   gfx->print("CO2: ");
-  gfx->printf("%.0f", previousSensors.co2Level);
+  gfx->printf("%.0fppm", previousSensors.co2Level);
   
-  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 400, 800, 300, 1000, 200, 1200);
+  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 700, 1200, 600, 1500, 400, 1800);
   gfx->setTextColor(WHITE);
-  gfx->setCursor(172, 183);
+  gfx->setCursor(162, 167);
   gfx->print("CO2: ");
   gfx->setTextColor(co2Color);
-  gfx->printf("%.0f", currentSensors.co2Level);
+  gfx->printf("%.0fppm", currentSensors.co2Level);
   
-  // System Status (top left) - redraw once at the end
-  gfx->fillCircle(15, 50, 8, GREEN);           // Status circle
+  // Calculate overall system status based on worst sensor (excluding pump)
+  uint16_t systemStatusColor = GREEN; // Start with best status
+  const char* systemStatusText = "System OK";
+  
+  // Check if this is the first startup
+  if (isStartup) {
+    systemStatusColor = BLUE;
+    systemStatusText = "Start up";
+    isStartup = false; // Clear startup flag after first display
+  } else {
+    // Check all sensor colors and find the worst one
+    uint16_t sensorColors[] = {waterTempColor, phColor, waterLevelColor, envTempColor, humidityColor, lightColor, co2Color};
+    
+    for (int i = 0; i < 7; i++) {
+      if (sensorColors[i] == RED) {
+        systemStatusColor = RED;
+        systemStatusText = "Critical";
+        break; // Red is worst, no need to check further
+      } else if (sensorColors[i] == ORANGE && systemStatusColor != RED) {
+        systemStatusColor = ORANGE;
+        systemStatusText = "Warning";
+      } else if (sensorColors[i] == YELLOW && systemStatusColor != RED && systemStatusColor != ORANGE) {
+        systemStatusColor = YELLOW;
+        systemStatusText = "Caution";
+      }
+    }
+  }
+  
+  // Clear previous system status text with a black rectangle
+  gfx->fillRect(32, 44, 120, 16, BLACK); // Clear text area (width: 120px, height: 16px for size 2 text)
+  
+  // System Status (top left) - color matches worst sensor status
+  gfx->fillCircle(15, 50, 8, systemStatusColor);  // Dynamic status circle color
   gfx->setTextColor(WHITE);
   gfx->setTextSize(2);
   gfx->setCursor(32, 44);
-  gfx->print("System OK");
+  gfx->print(systemStatusText);
 }
 
 // Function to get status color based on value ranges
@@ -197,10 +231,8 @@ uint16_t getStatusColor(float value, float minGood, float maxGood, float minYell
   // Check if value is in the warning yellow range
   if (value >= minYellow && value <= maxYellow) return YELLOW;
   
-  // Check if orange range is specified and value is in orange range
-  if (minOrange != -999 && maxOrange != -999) {
-    if (value >= minOrange && value <= maxOrange) return ORANGE;
-  }
+  // Check if value is in orange range
+  if (value >= minOrange && value <= maxOrange) return ORANGE;
   
   // Any value outside all specified ranges is critical (red)
   return RED;
