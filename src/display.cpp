@@ -53,40 +53,37 @@ void drawHydroponicTower() {
 void drawSensorStatus() {
   // Set text size for readability
   gfx->setTextSize(1);
-  
-  // Clear and immediately redraw each sensor value to minimize flicker
-  
-  // Water Temperature - clear previous, then draw new immediately
+
+  //Clear previous value, then draw new immediately to minimize flicker
+
+  // Water Temperature
   gfx->setTextColor(BLACK);  
   gfx->setCursor(15, 290);
-  gfx->print("H2O: ");
-  gfx->printf("%.1fC", previousSensors.waterTemp);
+  gfx->printf("H2O: %.1fC", previousSensors.waterTemp);
   
-  uint16_t waterTempColor = getStatusColor(currentSensors.waterTemp, 24, 26, 20, 28, 12, 32);
+  uint16_t waterTempColor = getStatusColor(currentSensors.waterTemp, 18, 22, 25, 15, 28, 12);
   gfx->setTextColor(WHITE);
   gfx->setCursor(15, 290);
   gfx->print("H2O: ");
   gfx->setTextColor(waterTempColor);
   gfx->printf("%.1fC", currentSensors.waterTemp);
   
-  // Water pH - clear previous, then draw new immediately
+  // Water pH
   gfx->setTextColor(BLACK);  
   gfx->setCursor(15, 300);
-  gfx->print("pH: ");
-  gfx->printf("%.1f", previousSensors.waterPH);
+  gfx->printf("pH: %.1f", previousSensors.waterPH);
   
-  uint16_t phColor = getStatusColor(currentSensors.waterPH, 7, 9, 5, 10, 4, 11);
+  uint16_t phColor = getStatusColor(currentSensors.waterPH, 5.5, 6.5, 5, 7, 4, 8);
   gfx->setTextColor(WHITE);
   gfx->setCursor(15, 300);
   gfx->print("pH: ");
   gfx->setTextColor(phColor);
   gfx->printf("%.1f", currentSensors.waterPH);
   
-  // Water Level - clear previous, then draw new immediately
+  // Water Level
   gfx->setTextColor(BLACK);  
   gfx->setCursor(15, 310);
-  gfx->print("Level: ");
-  gfx->print(previousSensors.waterLevel ? "OK" : "LOW");
+  gfx->printf("Level: %s", previousSensors.waterLevel ? "OK" : "LOW");
   
   uint16_t waterLevelColor = getStatusColor(currentSensors.waterLevel);
   gfx->setTextColor(WHITE);
@@ -95,11 +92,10 @@ void drawSensorStatus() {
   gfx->setTextColor(waterLevelColor);
   gfx->print(currentSensors.waterLevel ? "OK" : "LOW");
   
-  // Pump Status - clear previous, then draw new immediately
+  // Pump Status
   gfx->setTextColor(BLACK);  
   gfx->setCursor(170, 295);
-  gfx->print("Pump: ");
-  gfx->print(previousSensors.pumpStatus ? "ON" : "OFF");
+  gfx->printf("Pump: %s", previousSensors.pumpStatus ? "ON" : "OFF");
   
   uint16_t pumpStatusColor = getStatusColor(currentSensors.pumpStatus);
   gfx->setTextColor(WHITE);
@@ -108,54 +104,48 @@ void drawSensorStatus() {
   gfx->setTextColor(pumpStatusColor);
   gfx->print(currentSensors.pumpStatus ? "ON" : "OFF");
   
-  // Environment Temperature - clear previous, then draw new immediately
+  // Environment Temperature
   gfx->setTextColor(BLACK);  
   gfx->setCursor(162, 105);
-  gfx->print("Temp: ");
-  gfx->printf("%.1fC", previousSensors.envTemp);
+  gfx->printf("Temp: %.1fC", previousSensors.envTemp);
   
-  uint16_t envTempColor = getStatusColor(currentSensors.envTemp, 24, 26, 20, 28, 12, 32);
+  uint16_t envTempColor = getStatusColor(currentSensors.envTemp, 15, 25, 13, 30, 10, 33);
   gfx->setTextColor(WHITE);
   gfx->setCursor(162, 105);
   gfx->print("Temp: ");
   gfx->setTextColor(envTempColor);
   gfx->printf("%.1fC", currentSensors.envTemp);
   
-  // Environment Humidity - clear previous, then draw new immediately
+  // Environment Humidity
   gfx->setTextColor(BLACK);  
   gfx->setCursor(162, 120);
-  gfx->print("Hum: ");
-  gfx->printf("%.0f%%", previousSensors.envHumidity);
+  gfx->printf("Hum: %.0f%%", previousSensors.envHumidity);
   
-  uint16_t humidityColor = getStatusColor(currentSensors.envHumidity, 40, 70, 30, 80, 20, 90);
+  uint16_t humidityColor = getStatusColor(currentSensors.envHumidity, 50, 70, 35, 85, 25, 95);
   gfx->setTextColor(WHITE);
   gfx->setCursor(162, 120);
   gfx->print("Hum: ");
   gfx->setTextColor(humidityColor);
   gfx->printf("%.0f%%", currentSensors.envHumidity);
   
-  // Light Level - clear previous, then draw new immediately
+  // Light Level
   gfx->setTextColor(BLACK);  
-  gfx->setCursor(87, 73);
-  gfx->print("Light: ");
-  gfx->printf("%.0f", previousSensors.lightLevel);
-  gfx->print(" lx");
+  gfx->setCursor(85, 72);
+  gfx->printf("Light: %.0f lx", previousSensors.lightLevel);
   
-  uint16_t lightColor = getStatusColor(currentSensors.lightLevel, 10, 1200, 5, 1500, 2, 1800);
+  uint16_t lightColor = getStatusColor(currentSensors.lightLevel, 10, 40000, 5, 50000, 2, 90000);
   gfx->setTextColor(WHITE);
-  gfx->setCursor(87, 73);
+  gfx->setCursor(85, 72);
   gfx->print("Light: ");
   gfx->setTextColor(lightColor);
-  gfx->printf("%.0f", currentSensors.lightLevel);
-  gfx->print(" lx");
+  gfx->printf("%.0f lx", currentSensors.lightLevel);
   
-  // CO2 Level - clear previous, then draw new immediately
+  // CO2 Level
   gfx->setTextColor(BLACK);  
   gfx->setCursor(162, 167);
-  gfx->print("CO2: ");
-  gfx->printf("%.0fppm", previousSensors.co2Level);
+  gfx->printf("CO2: %.0fppm", previousSensors.co2Level);
   
-  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 300, 1200, 200, 1500, 100, 1800);
+  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 400, 1500, 200, 1800, 100, 2200);
   gfx->setTextColor(WHITE);
   gfx->setCursor(162, 167);
   gfx->print("CO2: ");
