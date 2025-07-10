@@ -22,6 +22,6 @@ void initDisplay();
 void drawHydroponicTower();
 void drawSensorStatus();
 uint16_t getStatusColor(float value, float minGood, float maxGood, float minYellow, float maxYellow, float minOrange = -999, float maxOrange = -999);
-uint16_t getStatusColorBool(bool status);
+uint16_t getStatusColor(bool status);
 
 #endif

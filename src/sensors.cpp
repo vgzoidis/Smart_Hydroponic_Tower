@@ -70,9 +70,8 @@ void initSensors() {
   mySerial.begin(BAUDRATE); // (Uno example) device to MH-Z19 serial start
   myMHZ19.begin(mySerial); // *Serial(Stream) reference must be passed to library begin().
   myMHZ19.autoCalibration(); // Turn auto calibration ON (OFF autoCalibration(false))
-
-  // Initialize any other sensor hardware here
-  Serial.println("Sensors initialized");
+  
+  //Serial.println("Sensors initialized");
 }
 
 void updateSensorValues() {

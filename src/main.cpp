@@ -21,8 +21,7 @@ void handleSensorUpdate() {
 
 void setup() {
   Serial.begin(9600);
-
-  Serial.println("Starting Hydroponic Tower Dashboard...");
+  //Serial.println("Starting Hydroponic Tower Dashboard...");
   
   initDisplay(); // Initialize display  
   initSensors(); // Initialize sensors
@@ -36,7 +35,7 @@ void setup() {
   timerAlarmWrite(timer, measureInterval, true); // Set timer to trigger every 1 seconds
   timerAlarmEnable(timer); // Enable the timer
   
-  Serial.println("System initialized successfully!");
+  //Serial.println("System initialized successfully!");
 }
 
 void loop() {

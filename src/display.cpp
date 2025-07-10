@@ -88,7 +88,7 @@ void drawSensorStatus() {
   gfx->print("Level: ");
   gfx->print(previousSensors.waterLevel ? "OK" : "LOW");
   
-  uint16_t waterLevelColor = getStatusColorBool(currentSensors.waterLevel);
+  uint16_t waterLevelColor = getStatusColor(currentSensors.waterLevel);
   gfx->setTextColor(WHITE);
   gfx->setCursor(15, 310);
   gfx->print("Level: ");
@@ -101,10 +101,11 @@ void drawSensorStatus() {
   gfx->print("Pump: ");
   gfx->print(previousSensors.pumpStatus ? "ON" : "OFF");
   
+  uint16_t pumpStatusColor = getStatusColor(currentSensors.pumpStatus);
   gfx->setTextColor(WHITE);
   gfx->setCursor(170, 295);
   gfx->print("Pump: ");
-  gfx->setTextColor(currentSensors.pumpStatus ? GREEN : RED);
+  gfx->setTextColor(pumpStatusColor);
   gfx->print(currentSensors.pumpStatus ? "ON" : "OFF");
   
   // Environment Temperature - clear previous, then draw new immediately
@@ -154,7 +155,7 @@ void drawSensorStatus() {
   gfx->print("CO2: ");
   gfx->printf("%.0fppm", previousSensors.co2Level);
   
-  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 700, 1200, 600, 1500, 400, 1800);
+  uint16_t co2Color = getStatusColor(currentSensors.co2Level, 300, 1200, 200, 1500, 100, 1800);
   gfx->setTextColor(WHITE);
   gfx->setCursor(162, 167);
   gfx->print("CO2: ");
@@ -200,22 +201,15 @@ void drawSensorStatus() {
   gfx->print(systemStatusText);
 }
 
-// Function to get status color based on value ranges
+// Function to get status color based on value ranges (float)
 uint16_t getStatusColor(float value, float minGood, float maxGood, float minYellow, float maxYellow, float minOrange, float maxOrange) {
-  // Check if value is in the optimal green range
-  if (value >= minGood && value <= maxGood) return GREEN;
-  
-  // Check if value is in the warning yellow range
-  if (value >= minYellow && value <= maxYellow) return YELLOW;
-  
-  // Check if value is in orange range
-  if (value >= minOrange && value <= maxOrange) return ORANGE;
-  
-  // Any value outside all specified ranges is critical (red)
-  return RED;
+    if (value >= minGood && value <= maxGood) return GREEN;
+    if (value >= minYellow && value <= maxYellow) return YELLOW;
+    if (value >= minOrange && value <= maxOrange) return ORANGE;
+    return RED;
 }
 
-// Function to get status color for boolean values
-uint16_t getStatusColorBool(bool status) {
-  return status ? GREEN : RED;  // true = OK (green), false = LOW (red)
+// Overloaded function to get status color for boolean values
+uint16_t getStatusColor(bool status) {
+    return status ? GREEN : RED;
 }
