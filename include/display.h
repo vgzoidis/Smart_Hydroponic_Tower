@@ -19,9 +19,9 @@ extern Arduino_GFX *gfx;
 
 // Function declarations
 void initDisplay();
-void drawHydroponicTower();
 void drawSensorStatus();
 uint16_t getStatusColor(float value, float minGood, float maxGood, float minYellow, float maxYellow, float minOrange = -999, float maxOrange = -999);
 uint16_t getStatusColor(bool status);
+void printSystemStatus(uint16_t color, const char* text);
 
 #endif

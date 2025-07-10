@@ -22,12 +22,8 @@ void handleSensorUpdate() {
 void setup() {
   Serial.begin(9600);
   //Serial.println("Starting Hydroponic Tower Dashboard...");
-  
-  initDisplay(); // Initialize display  
+  initDisplay(); // Initialize display and draw the UI 
   initSensors(); // Initialize sensors
-  
-  drawHydroponicTower();  // Draw the hydroponic tower once in setup
-  drawSensorStatus(); // Draw initial sensor status
 
   // Initialize timer (Timer 0, divider 80, count up)
   timer = timerBegin(0, 80, true); // ESP32 clock is 80MHz, so: 80MHz/80 = 1MHz = 1μs per tick
