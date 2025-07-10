@@ -13,7 +13,11 @@ void IRAM_ATTR onTimer() {
   readSensors = true;
 }
 
-void handleSensorUpdate(); // Extract sensor handling
+void handleSensorUpdate() {
+  updateSensorValues(); // Update sensor values
+  drawSensorStatus(); // Redraw sensor status with updated values
+  updatePreviousValues(); // Update previous values for next clearing cycle
+}
 
 void setup() {
   Serial.begin(9600);
@@ -40,11 +44,6 @@ void loop() {
     readSensors = false; // Reset the flag
     handleSensorUpdate();
   }
-}
 
-
-void handleSensorUpdate() {
-  updateSensorValues(); // Update sensor values
-  drawSensorStatus(); // Redraw sensor status with updated values
-  updatePreviousValues(); // Update previous values for next clearing cycle
+  
 }
