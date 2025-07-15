@@ -99,7 +99,7 @@ void initWiFi() {
   
   server.begin();
   Serial.println("HTTP server started");
-  Serial.println("Access your sensor data at: http://160.40.48.23/sensors");
+  Serial.println("Access a simple dashboard at: http://160.40.48.23");
 }
 
 void handleWebServer() {
