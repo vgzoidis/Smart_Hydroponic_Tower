@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "display.h"
 #include "sensors.h"
+#include "wifi_server.h"
 
 #define measureInterval 1000000 //1 second (1,000,000 microseconds)
 
@@ -24,6 +25,7 @@ void setup() {
   //Serial.println("Starting Hydroponic Tower Dashboard...");
   initDisplay(); // Initialize display and draw the UI 
   initSensors(); // Initialize sensors
+  initWiFi(); // Initialize WiFi and web server
 
   // Initialize timer (Timer 0, divider 80, count up)
   timer = timerBegin(0, 80, true); // ESP32 clock is 80MHz, so: 80MHz/80 = 1MHz = 1μs per tick
@@ -39,6 +41,9 @@ void loop() {
     readSensors = false; // Reset the flag
     handleSensorUpdate();
   }
+  
+  // Handle any additional web server tasks if needed
+  handleWebServer();
 
   
 }
