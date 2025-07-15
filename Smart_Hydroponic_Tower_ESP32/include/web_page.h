@@ -44,7 +44,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     document.getElementById('waterLevel').textContent = data.waterLevel ? 'OK' : 'LOW';
                 });
         }
-        setInterval(updateSensors, 1000);
+        setInterval(updateSensors, 2000);
         updateSensors();
     </script>
 </body>
