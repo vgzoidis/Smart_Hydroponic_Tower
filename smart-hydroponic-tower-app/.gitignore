@@ -1,0 +1,138 @@
+# React Native Gitignore
+
+# OSX
+#
+.DS_Store
+
+# Xcode
+#
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+ios/.xcode.env.local
+
+# Android/IntelliJ
+#
+android/app/build/
+android/build/
+android/gradle/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/.gradle/
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/res/drawable-*
+android/app/src/main/res/raw/
+android/captures/
+android/keystore.properties
+android/.project
+android/.settings/
+android/.classpath
+*.iml
+*.hprof
+.cxx/
+.externalNativeBuild/
+
+# Node.js
+#
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Fastlane
+#
+# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
+# screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/
+
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/screenshots
+ios/fastlane/test_output
+
+# Bundle artifacts
+*.jsbundle
+
+# CocoaPods
+ios/Pods/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# @generated expo/ngrok
+@expo/ngrok@*/
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
+
+# Flipper
+android/app/src/debug/java/com/*/ReactNativeFlipper.java
+
+# Testing
+coverage/
+*.lcov
+
+# Misc
+.vscode/
+.idea/
+*.log
+*.orig
+*.rej
+*.swo
+*.swp
+*.tmp
+*.temp
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Generated files and build artifacts
+build/
+dist/
+*.apk
+*.aab
+*.ipa
+
+# React Native specific temp files
+temp/
+.tmp/
+
+# Metro bundler cache
+.metro/
+
+# Debug keystore (should not be committed)
+android/app/debug.keystore
+
+# Local Gradle properties
+gradle.properties
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# Verification scripts (optional - you can keep these)
+# verify-config.ps1
+# build-and-install.ps1
