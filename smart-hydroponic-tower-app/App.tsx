@@ -49,6 +49,9 @@ const Colors = {
 };
 
 function App(): JSX.Element {
+  // Tab state
+  const [activeTab, setActiveTab] = useState('dashboard');
+
   // Sensor data simulation - values closer to your ESP32 display
   const [sensorData] = useState({
     waterTemp: 25.4,     // H2O temp from ESP32
@@ -109,6 +112,145 @@ function App(): JSX.Element {
     </View>
   );
 
+  // Tab content components
+  const DashboardContent = () => (
+    <>
+      {/* Main Dashboard */}
+      <View style={styles.dashboardContainer}>
+        
+        {/* Left Side - Light and CO2 in vertical column */}
+        <View style={styles.sensorColumn}>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorGridLabel}>Light:</Text>
+            <Text style={[styles.sensorGridValue, { color: getStatusColor(lightStatus) }]}>
+              {sensorData.lightLevel} lx
+            </Text>
+          </View>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorGridLabel}>CO2:</Text>
+            <Text style={[styles.sensorGridValue, { color: getStatusColor(co2Status) }]}>
+              {sensorData.co2Level} ppm
+            </Text>
+          </View>
+        </View>
+
+        {/* Center - Tower Visualization */}
+        <View style={styles.towerContainer}>
+          <View style={styles.tower}>
+            {/* Single tower segment for the whole length */}
+            <View style={styles.mainTowerSegment} />
+            
+            {/* Tower levels with plants - 6 levels like ESP32 display */}
+            {[...Array(6)].map((_, index) => (
+              <View key={index} style={styles.towerLevel}>
+                <PlantLevel active={true} />
+                <View style={styles.towerLevelSpacer} />
+                <PlantLevel active={true} />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Right Side - Temperature and Humidity in vertical column */}
+        <View style={styles.sensorColumn}>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorGridLabel}>Temp:</Text>
+            <Text style={[styles.sensorGridValue, { color: getStatusColor(tempStatus) }]}>
+              {sensorData.envTemp}°C
+            </Text>
+          </View>
+          <View style={styles.sensorItem}>
+            <Text style={styles.sensorGridLabel}>Humidity:</Text>
+            <Text style={[styles.sensorGridValue, { color: getStatusColor(humidityStatus) }]}>
+              {sensorData.humidity}%
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Water Values Panel */}
+      <LinearGradient
+        colors={['#3B82F6', '#1E40AF', '#0EA5E9']} // Beautiful blue water gradient
+        style={styles.waterValuesPanel}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      >
+        <View style={styles.gridContainer}>
+          {/* First Row */}
+          <View style={styles.gridRow}>
+            <View style={styles.gridItem}>
+              <Text style={styles.gridLabel}>H2O:</Text>
+              <Text style={[styles.gridValue, { color: getStatusColor(waterTempStatus) }]}>
+                {sensorData.waterTemp}°C
+              </Text>
+            </View>
+            <View style={styles.gridItem}>
+              <Text style={styles.gridLabel}>Level:</Text>
+              <Text style={[styles.gridValue, { color: Colors.good }]}>OK</Text>
+            </View>
+          </View>
+          
+          {/* Second Row */}
+          <View style={styles.gridRow}>
+            <View style={styles.gridItem}>
+              <Text style={styles.gridLabel}>pH:</Text>
+              <Text style={[styles.gridValue, { color: getStatusColor(phStatus) }]}>
+                {sensorData.waterPH}
+              </Text>
+            </View>
+            <View style={styles.gridItem}>
+              <Text style={styles.gridLabel}>Pump:</Text>
+              <Text style={[styles.gridValue, { 
+                color: sensorData.pumpStatus ? Colors.good : Colors.critical 
+              }]}>
+                {sensorData.pumpStatus ? 'ON' : 'OFF'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </>
+  );
+
+  const PlottingContent = () => (
+    <View style={styles.tabContent}>
+      <Text style={styles.tabTitle}>Data Plotting</Text>
+      <Text style={styles.tabDescription}>Coming soon: Real-time sensor data charts and historical trends</Text>
+      <View style={styles.placeholderChart}>
+        <Text style={styles.placeholderText}>📊 Chart Placeholder</Text>
+      </View>
+    </View>
+  );
+
+  const SettingsContent = () => (
+    <View style={styles.tabContent}>
+      <Text style={styles.tabTitle}>Settings</Text>
+      <Text style={styles.tabDescription}>Configure your hydroponic system parameters</Text>
+      <View style={styles.settingsItem}>
+        <Text style={styles.settingsLabel}>Water Temperature Range:</Text>
+        <Text style={styles.settingsValue}>18°C - 25°C</Text>
+      </View>
+      <View style={styles.settingsItem}>
+        <Text style={styles.settingsLabel}>pH Range:</Text>
+        <Text style={styles.settingsValue}>5.5 - 7.0</Text>
+      </View>
+      <View style={styles.settingsItem}>
+        <Text style={styles.settingsLabel}>Light Duration:</Text>
+        <Text style={styles.settingsValue}>16 hours/day</Text>
+      </View>
+    </View>
+  );
+
+  const TabButton = ({ tab, label, icon }: { tab: string; label: string; icon: string }) => (
+    <TouchableOpacity 
+      style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+      onPress={() => setActiveTab(tab)}
+    >
+      <Text style={[styles.tabIcon, activeTab === tab && styles.activeTabIcon]}>{icon}</Text>
+      <Text style={[styles.tabLabel, activeTab === tab && styles.activeTabLabel]}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <LinearGradient 
       colors={[Colors.gradientStart, Colors.gradientEnd]} 
@@ -132,108 +274,17 @@ function App(): JSX.Element {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Main Dashboard */}
-        <View style={styles.dashboardContainer}>
-          
-          {/* Left Side - Light and CO2 in vertical column */}
-          <View style={styles.sensorColumn}>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorGridLabel}>Light:</Text>
-              <Text style={[styles.sensorGridValue, { color: getStatusColor(lightStatus) }]}>
-                {sensorData.lightLevel} lx
-              </Text>
-            </View>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorGridLabel}>CO2:</Text>
-              <Text style={[styles.sensorGridValue, { color: getStatusColor(co2Status) }]}>
-                {sensorData.co2Level} ppm
-              </Text>
-            </View>
-          </View>
-
-          {/* Center - Tower Visualization */}
-          <View style={styles.towerContainer}>
-            <View style={styles.tower}>
-              {/* Single tower segment for the whole length */}
-              <View style={styles.mainTowerSegment} />
-              
-              {/* Tower levels with plants - 6 levels like ESP32 display */}
-              {[...Array(6)].map((_, index) => (
-                <View key={index} style={styles.towerLevel}>
-                  <PlantLevel active={true} />
-                  <View style={styles.towerLevelSpacer} />
-                  <PlantLevel active={true} />
-                </View>
-              ))}
-              
-              {/* Water base - now just the visual part */}
-              <View style={styles.waterBase}>
-                <View style={styles.waterIndicator}>
-                  <View style={[styles.waterFill, { backgroundColor: Colors.primary }]} />
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Right Side - Temperature and Humidity in vertical column */}
-          <View style={styles.sensorColumn}>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorGridLabel}>Temp:</Text>
-              <Text style={[styles.sensorGridValue, { color: getStatusColor(tempStatus) }]}>
-                {sensorData.envTemp}°C
-              </Text>
-            </View>
-            <View style={styles.sensorItem}>
-              <Text style={styles.sensorGridLabel}>Humidity:</Text>
-              <Text style={[styles.sensorGridValue, { color: getStatusColor(humidityStatus) }]}>
-                {sensorData.humidity}%
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Water Values Panel */}
-        <LinearGradient
-          colors={['#3B82F6', '#1E40AF', '#0EA5E9']} // Beautiful blue water gradient
-          style={styles.waterValuesPanel}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-        >
-          <View style={styles.gridContainer}>
-            {/* First Row */}
-            <View style={styles.gridRow}>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>Water Temp:</Text>
-                <Text style={[styles.gridValue, { color: getStatusColor(waterTempStatus) }]}>
-                  {sensorData.waterTemp}°C
-                </Text>
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>Water Level:</Text>
-                <Text style={[styles.gridValue, { color: Colors.good }]}>OK</Text>
-              </View>
-            </View>
-            
-            {/* Second Row */}
-            <View style={styles.gridRow}>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>pH Level:</Text>
-                <Text style={[styles.gridValue, { color: getStatusColor(phStatus) }]}>
-                  {sensorData.waterPH}
-                </Text>
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>Water Pump:</Text>
-                <Text style={[styles.gridValue, { 
-                  color: sensorData.pumpStatus ? Colors.good : Colors.critical 
-                }]}>
-                  {sensorData.pumpStatus ? 'ON' : 'OFF'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
+        {activeTab === 'dashboard' && <DashboardContent />}
+        {activeTab === 'plotting' && <PlottingContent />}
+        {activeTab === 'settings' && <SettingsContent />}
       </ScrollView>
+      
+      {/* Bottom Tab Navigation */}
+      <View style={styles.tabBar}>
+        <TabButton tab="dashboard" label="Dashboard" icon="🏠" />
+        <TabButton tab="plotting" label="Charts" icon="📊" />
+        <TabButton tab="settings" label="Settings" icon="⚙️" />
+      </View>
     </LinearGradient>
   );
 }
@@ -297,10 +348,10 @@ const styles = StyleSheet.create({
   
   // Dashboard Layout
   dashboardContainer: {
-    flex: 1,
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 5, // Minimal bottom padding to bring water panel closer
     alignItems: 'center',
   },
   sensorColumn: {
@@ -353,8 +404,8 @@ const styles = StyleSheet.create({
     flex: 2, // Make it take more space
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    minHeight: 400, // Ensure minimum height
+    paddingVertical: 10, // Reduced from 20 to bring water panel closer
+    minHeight: 350, // Reduced from 400 to make it more compact
   },
   tower: {
     alignItems: 'center',
@@ -416,70 +467,48 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   
-  // Water System
-  waterBase: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  waterIndicator: {
-    width: 80, // Wider water indicator
-    height: 30, // Taller water indicator
-    backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: Colors.tower,
-    justifyContent: 'center',
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  waterFill: {
-    height: '80%',
-    width: '90%',
-    alignSelf: 'center',
-    borderRadius: 2,
-  },
+  // 
   
-  // Water Values Panel - Proper size and spacing
   waterValuesPanel: {
-    marginHorizontal: 20,
-    marginTop: 30,
-    borderRadius: 15,
-    padding: 25,
-    borderWidth: 3,
+    marginHorizontal: 100, // Much larger margins for very narrow panel
+    marginTop: 5, // Very close to tower
+    borderRadius: 6, // Smaller rounded corners
+    padding: 6, // Much tighter padding for snug fit
+    borderWidth: 1, // Keep thin border
     borderColor: 'rgba(255,255,255,0.6)', // White tank outline
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-    minHeight: 160,
+    shadowOffset: { width: 0, height: 1 }, // Minimal shadow
+    shadowOpacity: 0.2,
+    shadowRadius: 2, // Very tight shadow
+    elevation: 2, // Minimal elevation
+    minHeight: 70, // Even shorter panel
     height: 'auto',
   },
   // Grid Layout Styles
   gridContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center', // Center the grid content
   },
   gridRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingHorizontal: 5,
+    justifyContent: 'center', // Center the row content
+    marginBottom: 4, // Even tighter spacing between rows
+    paddingHorizontal: 1, // Minimal horizontal padding
+    width: '100%', // Full width of the container
   },
   gridItem: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 15,
-    minWidth: 120,
+    paddingHorizontal: 2, // Very tight item spacing
+    minWidth: 70, // Smaller minimum width
+    maxWidth: 90, // Smaller maximum width for snug fit
   },
   gridLabel: {
     fontSize: 16,
     color: Colors.text,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 1, // Minimal spacing between label and value
     textAlign: 'center',
   },
   gridValue: {
@@ -487,6 +516,105 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  
+  // Tab Navigation Styles
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingVertical: 10,
+    paddingBottom: 20, // Extra padding for safe area
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  activeTabButton: {
+    backgroundColor: 'rgba(56,178,172,0.2)',
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  tabIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  activeTabIcon: {
+    fontSize: 22,
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  activeTabLabel: {
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  
+  // Tab Content Styles
+  tabContent: {
+    flex: 1,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  tabDescription: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  
+  // Plotting Tab Styles
+  placeholderChart: {
+    width: '100%',
+    height: 200,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    fontSize: 18,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  
+  // Settings Tab Styles
+  settingsItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  settingsLabel: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  settingsValue: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: 'bold',
   },
 });
 
