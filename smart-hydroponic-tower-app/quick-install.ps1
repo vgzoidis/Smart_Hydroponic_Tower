@@ -56,4 +56,6 @@ if ($installResult -match "Success") {
     Write-Host "❌ Installation failed: $installResult" -ForegroundColor Red
 }
 
-Read-Host "`nPress Enter to close"
+# Add this at the very end of your script:
+Write-Host "Opening app on device..." -ForegroundColor Green
+adb shell am start -n com.smarthydroponictowerapp/.MainActivity
