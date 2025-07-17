@@ -281,9 +281,9 @@ function App(): JSX.Element {
       
       {/* Bottom Tab Navigation */}
       <View style={styles.tabBar}>
-        <TabButton tab="dashboard" label="Dashboard" icon="🏠" />
-        <TabButton tab="plotting" label="Charts" icon="📊" />
-        <TabButton tab="settings" label="Settings" icon="⚙️" />
+        <TabButton tab="dashboard" label="Dashboard" icon="●" />
+        <TabButton tab="plotting" label="Charts" icon="▲" />
+        <TabButton tab="settings" label="Settings" icon="⚙" />
       </View>
     </LinearGradient>
   );
@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
   // Header Styles
   header: {
     backgroundColor: 'transparent',
-    paddingTop: 20, // Reduced from 50 to move title up
-    paddingBottom: 20,
+    paddingTop: 10, // Reduced from 20 to 10 to move content up
+    paddingBottom: 10, // Reduced from 20 to 10 to move content up
     paddingHorizontal: 20,
     alignItems: 'center',
   },
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   dashboardContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 5, // Reduced from 20 to 5 to move dashboard up
     paddingBottom: 5, // Minimal bottom padding to bring water panel closer
     alignItems: 'center',
   },
@@ -414,57 +414,57 @@ const styles = StyleSheet.create({
   },
   mainTowerSegment: {
     position: 'absolute',
-    width: 24, // Wider from 16 to 24
-    height: 320, // Taller from 280 to 320
+    width: 32, // Scaled up from 24 to 32
+    height: 400, // Scaled up from 320 to 400
     backgroundColor: Colors.tower, // White tower
-    borderRadius: 2,
+    borderRadius: 3, // Slightly bigger border radius
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 }, // Bigger shadow
+    shadowOpacity: 0.4, // More prominent shadow
+    shadowRadius: 6, // Larger shadow radius
+    elevation: 6, // Higher elevation
     zIndex: 1,
     top: 20, // Move it down by 20px
   },
   towerLevel: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 8, // More space between levels
+    marginVertical: 10, // More space between levels (scaled from 8 to 10)
     zIndex: 2,
   },
   towerLevelSpacer: {
-    width: 16,
-    height: 40,
-    marginHorizontal: 8,
+    width: 20, // Scaled up from 16 to 20
+    height: 50, // Scaled up from 40 to 50
+    marginHorizontal: 10, // Scaled up from 8 to 10
   },
   towerSegment: {
-    width: 16, // Wider tower segment
-    height: 40, // Taller tower segment
+    width: 20, // Scaled up from 16 to 20
+    height: 50, // Scaled up from 40 to 50
     backgroundColor: Colors.tower, // White tower
-    marginHorizontal: 8,
-    borderRadius: 2,
+    marginHorizontal: 10, // Scaled up from 8 to 10
+    borderRadius: 3, // Slightly bigger border radius
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 }, // Bigger shadow
+    shadowOpacity: 0.4, // More prominent shadow
+    shadowRadius: 6, // Larger shadow radius
+    elevation: 6, // Higher elevation
   },
   plantLevel: {
-    width: 32, // Bigger plant levels
-    height: 32,
+    width: 40, // Scaled up from 32 to 40
+    height: 40, // Scaled up from 32 to 40
     justifyContent: 'center',
     alignItems: 'center',
   },
   plantPot: {
-    width: 24, // Bigger plant pots
-    height: 24,
-    borderRadius: 12,
+    width: 30, // Scaled up from 24 to 30
+    height: 30, // Scaled up from 24 to 30
+    borderRadius: 15, // Scaled up from 12 to 15
     borderWidth: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 }, // Slightly bigger shadow
+    shadowOpacity: 0.4, // More prominent shadow
+    shadowRadius: 3, // Larger shadow radius
+    elevation: 4, // Higher elevation
   },
   
   // 
@@ -521,28 +521,33 @@ const styles = StyleSheet.create({
   // Tab Navigation Styles
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'transparent', // Remove dark background to show gradient
     paddingVertical: 10,
     paddingBottom: 20, // Extra padding for safe area
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: 'rgba(255,255,255,0.1)', // More subtle border
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)', // Subtle background for buttons
+    marginHorizontal: 2,
+    borderRadius: 8,
   },
   activeTabButton: {
-    backgroundColor: 'rgba(56,178,172,0.2)',
+    backgroundColor: 'rgba(56,178,172,0.3)', // Slightly more visible when active
     borderRadius: 8,
-    marginHorizontal: 5,
+    marginHorizontal: 2,
   },
   tabIcon: {
-    fontSize: 20,
+    fontSize: 18, // Slightly smaller for minimalistic look
     marginBottom: 4,
+    color: 'rgba(255,255,255,0.7)', // Monochromatic grey
   },
   activeTabIcon: {
-    fontSize: 22,
+    fontSize: 20, // Active size
+    color: '#FFFFFF', // Pure white when active
   },
   tabLabel: {
     fontSize: 12,
