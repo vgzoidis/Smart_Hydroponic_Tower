@@ -7,6 +7,7 @@ import com.facebook.react.ReactPackage;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactNativeHost;
 import com.facebook.soloader.SoLoader;
+import com.BV.LinearGradient.LinearGradientPackage;
 import java.util.List;
 import java.util.Arrays;
 
@@ -24,7 +25,8 @@ public class MainApplication extends Application implements ReactApplication {
         protected List<ReactPackage> getPackages() {
           @SuppressWarnings("UnnecessaryLocalVariable")
           List<ReactPackage> packages = Arrays.<ReactPackage>asList(
-              new com.facebook.react.shell.MainReactPackage()
+              new com.facebook.react.shell.MainReactPackage(),
+              new com.BV.LinearGradient.LinearGradientPackage()
               // Packages that cannot be autolinked yet can be added manually here, for example:
               // packages.add(new MyReactNativePackage());
           );
