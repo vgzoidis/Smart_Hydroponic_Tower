@@ -6,6 +6,16 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
  *
  * @type {import('metro-config').MetroConfig}
  */
-const config = {};
+const config = {
+  transformer: {
+    minifierConfig: {
+      // Suppress some warnings
+      keep_fnames: true,
+      mangle: {
+        keep_fnames: true,
+      },
+    },
+  },
+};
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);
