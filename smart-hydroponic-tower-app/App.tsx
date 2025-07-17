@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Feather from 'react-native-vector-icons/Feather';
 
 const { height, width } = Dimensions.get('window');
 
@@ -241,13 +242,16 @@ function App(): JSX.Element {
     </View>
   );
 
-  const TabButton = ({ tab, label, icon }: { tab: string; label: string; icon: string }) => (
+  const TabButton = ({ tab, label, iconName }: { tab: string; label: string; iconName: string }) => (
     <TouchableOpacity 
       style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
       onPress={() => setActiveTab(tab)}
     >
-      <Text style={[styles.tabIcon, activeTab === tab && styles.activeTabIcon]}>{icon}</Text>
-      <Text style={[styles.tabLabel, activeTab === tab && styles.activeTabLabel]}>{label}</Text>
+      <Feather 
+        name={iconName} 
+        size={24} 
+        color={activeTab === tab ? '#FFFFFF' : 'rgba(255,255,255,0.7)'} 
+      />
     </TouchableOpacity>
   );
 
@@ -281,9 +285,9 @@ function App(): JSX.Element {
       
       {/* Bottom Tab Navigation */}
       <View style={styles.tabBar}>
-        <TabButton tab="dashboard" label="Dashboard" icon="●" />
-        <TabButton tab="plotting" label="Charts" icon="▲" />
-        <TabButton tab="settings" label="Settings" icon="⚙" />
+        <TabButton tab="dashboard" label="Dashboard" iconName="home" />
+        <TabButton tab="plotting" label="Charts" iconName="activity" />
+        <TabButton tab="settings" label="Settings" iconName="settings" />
       </View>
     </LinearGradient>
   );
@@ -308,7 +312,7 @@ const styles = StyleSheet.create({
   // Header Styles
   header: {
     backgroundColor: 'transparent',
-    paddingTop: 10, // Reduced from 20 to 10 to move content up
+    paddingTop: 5, // Reduced from 20 to 5 to move content up
     paddingBottom: 10, // Reduced from 20 to 10 to move content up
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -414,10 +418,10 @@ const styles = StyleSheet.create({
   },
   mainTowerSegment: {
     position: 'absolute',
-    width: 32, // Scaled up from 24 to 32
-    height: 400, // Scaled up from 320 to 400
+    width: 50, // Increased from 32 to 50 to be wider and behind plants
+    height: 440, // Increased from 400 to 480 to extend further downwards
     backgroundColor: Colors.tower, // White tower
-    borderRadius: 3, // Slightly bigger border radius
+    borderRadius: 4, // Slightly bigger border radius to match new size
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 }, // Bigger shadow
     shadowOpacity: 0.4, // More prominent shadow
@@ -439,7 +443,7 @@ const styles = StyleSheet.create({
   },
   towerSegment: {
     width: 20, // Scaled up from 16 to 20
-    height: 50, // Scaled up from 40 to 50
+    height: 70, // Scaled up from 40 to 50
     backgroundColor: Colors.tower, // White tower
     marginHorizontal: 10, // Scaled up from 8 to 10
     borderRadius: 3, // Slightly bigger border radius
@@ -472,10 +476,10 @@ const styles = StyleSheet.create({
   waterValuesPanel: {
     marginHorizontal: 100, // Much larger margins for very narrow panel
     marginTop: 5, // Very close to tower
-    borderRadius: 6, // Smaller rounded corners
+    borderRadius: 10, // Smaller rounded corners
     padding: 6, // Much tighter padding for snug fit
-    borderWidth: 1, // Keep thin border
-    borderColor: 'rgba(255,255,255,0.6)', // White tank outline
+    borderWidth: 2, // Increased from 1 to 2 for wider border
+    borderColor: 'rgba(255,255,255,0.9)', // Increased from 0.6 to 0.9 for brighter border
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 }, // Minimal shadow
     shadowOpacity: 0.2,
@@ -524,13 +528,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Remove dark background to show gradient
     paddingVertical: 10,
     paddingBottom: 20, // Extra padding for safe area
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)', // More subtle border
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 18,
     backgroundColor: 'rgba(0,0,0,0.2)', // Subtle background for buttons
     marginHorizontal: 2,
     borderRadius: 8,
@@ -539,24 +542,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(56,178,172,0.3)', // Slightly more visible when active
     borderRadius: 8,
     marginHorizontal: 2,
-  },
-  tabIcon: {
-    fontSize: 18, // Slightly smaller for minimalistic look
-    marginBottom: 4,
-    color: 'rgba(255,255,255,0.7)', // Monochromatic grey
-  },
-  activeTabIcon: {
-    fontSize: 20, // Active size
-    color: '#FFFFFF', // Pure white when active
-  },
-  tabLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  activeTabLabel: {
-    color: Colors.text,
-    fontWeight: '600',
   },
   
   // Tab Content Styles
