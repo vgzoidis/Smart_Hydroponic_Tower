@@ -15,6 +15,12 @@ if ($devices -match "device$") {
     exit 1
 }
 
+# Clean build cache first
+#Write-Host "`n🧹 Cleaning build cache..." -ForegroundColor Yellow
+.\android\gradlew -p android clean
+#Remove-Item -Recurse -Force "android\app\build" -ErrorAction SilentlyContinue
+#Write-Host "✅ Cache cleared" -ForegroundColor Green
+
 # Build APK
 Write-Host "`n🔨 Building dashboard app..." -ForegroundColor Yellow
 .\android\gradlew -p android assembleDebug
@@ -27,7 +33,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "✅ Build successful!" -ForegroundColor Green
 
-# Uninstall old version
+# Uninstall old version completely
 Write-Host "`n🗑️ Removing old version..." -ForegroundColor Yellow
 $result = adb uninstall com.smarthydroponictowerapp 2>$null
 if ($result -eq "Success") {
@@ -35,6 +41,10 @@ if ($result -eq "Success") {
 } else {
     Write-Host "ℹ️ No previous version found" -ForegroundColor Cyan
 }
+
+# Clear app data from device
+Write-Host "🧹 Clearing app data..." -ForegroundColor Yellow
+adb shell pm clear com.smarthydroponictowerapp 2>$null
 
 # Install new version
 Write-Host "`n📲 Installing new dashboard..." -ForegroundColor Yellow
@@ -51,7 +61,11 @@ if ($installResult -match "Success") {
     Write-Host "`n🎉 Installation Complete!" -ForegroundColor Green
     Write-Host "📦 Size: $sizeMB MB" -ForegroundColor White
     Write-Host "✨ New Features: Dashboard UI, Color-coded Sensors, Tower View" -ForegroundColor Cyan
-    Write-Host "`n🚀 Open the app on your device to see the new dashboard!" -ForegroundColor Yellow
+    
+    # Wait a moment then open app
+    Write-Host "`n🚀 Opening app on device..." -ForegroundColor Green
+    Start-Sleep -Seconds 2
+    adb shell am start -n com.smarthydroponictowerapp/.MainActivity
 } else {
     Write-Host "❌ Installation failed: $installResult" -ForegroundColor Red
 }
