@@ -2,6 +2,7 @@
 #include "display.h"
 #include "sensors.h"
 #include "wifi_server.h"
+#include "pump_control.h"
 
 #define measureInterval 1000000 //1 second (1,000,000 microseconds)
 
@@ -14,17 +15,19 @@ void IRAM_ATTR onTimer() {
   readSensors = true;
 }
 
-void handleSensorUpdate() {
+void handleSystemUpdate() {
   updateSensorValues(); // Update sensor values
+  updatePumpControl();  // Update pump control
   drawSensorStatus(); // Redraw sensor status with updated values
   updatePreviousValues(); // Update previous values for next clearing cycle
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   //Serial.println("Starting Hydroponic Tower Dashboard...");
   initDisplay(); // Initialize display and draw the UI 
   initSensors(); // Initialize sensors
+  initPump();    // Initialize pump control
   initWiFi(); // Initialize WiFi and web server
 
   // Initialize timer (Timer 0, divider 80, count up)
@@ -39,7 +42,7 @@ void setup() {
 void loop() {
   if (readSensors) {
     readSensors = false; // Reset the flag
-    handleSensorUpdate();
+    handleSystemUpdate();
   }
   
   // Handle any additional web server tasks if needed

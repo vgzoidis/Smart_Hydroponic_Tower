@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -20,18 +20,84 @@ import {SettingsScreen} from './src/screens/SettingsScreen';
 
 function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isLoading, setIsLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState(false);
 
-  // Sensor data simulation
-  const [sensorData] = useState({
-    waterTemp: 25.4,
-    waterPH: 7.6,
-    waterLevel: true,
+  // Real-time sensor data from server
+  const [sensorData, setSensorData] = useState({
+    waterTemp: 0,
+    waterPH: 0,
+    waterLevel: false,
     pumpStatus: false,
-    envTemp: 25.3,
-    humidity: 49,
-    lightLevel: 181,
-    co2Level: 1627,
+    envTemp: 0,
+    humidity: 0,
+    lightLevel: 0,
+    co2Level: 0,
   });
+
+  // Function to fetch sensor data from the server
+  const fetchSensorData = async () => {
+    try {
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 8000)
+      );
+      
+      const fetchPromise = fetch('http://160.40.48.23/sensors', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Map the server response to our app's data structure
+      setSensorData({
+        waterTemp: data.waterTemp || 0,
+        waterPH: data.phLevel || 0,
+        waterLevel: data.waterLevel || false,
+        pumpStatus: false, // Not provided by server, keeping default
+        envTemp: data.envTemp || 0,
+        humidity: data.envHum || 0,
+        lightLevel: data.lightLevel || 0,
+        co2Level: data.CO2 || 0,
+      });
+      
+      setConnectionError(false);
+      setIsLoading(false);
+      
+      console.log('Sensor data updated successfully:', data);
+    } catch (error) {
+      console.error('Error fetching sensor data:', error);
+      setConnectionError(true);
+      setIsLoading(false);
+      
+      // No popup - just log the error and update the connection status indicator
+      console.log('Connection failed, using connection status indicator only');
+    }
+  };
+
+  // Set up interval to fetch data every second
+  useEffect(() => {
+    // Fetch data immediately on component mount
+    fetchSensorData();
+    
+    // Set up interval to fetch data every second (1000ms)
+    const interval = setInterval(fetchSensorData, 1000);
+    
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array to run only once on mount
+
+  // Sensor data simulation (fallback - removed)
 
   // Calculate statuses
   const waterTempStatus = getSensorStatus(sensorData.waterTemp, 18, 25);
@@ -85,16 +151,37 @@ function App(): JSX.Element {
           <Text style={styles.headerText}>HYDROPONIC TOWER</Text>
         </View>
 
-        <StatusIndicator
-          status={overallStatus}
-          label={
-            overallStatus === 'good'
-              ? 'System OK'
-              : overallStatus === 'warning'
-              ? 'Warning'
-              : 'Critical'
-          }
-        />
+        <View style={styles.statusRow}>
+          <StatusIndicator
+            status={overallStatus}
+            label={
+              overallStatus === 'good'
+                ? 'System OK'
+                : overallStatus === 'warning'
+                ? 'Warning'
+                : 'Critical'
+            }
+          />
+          
+          {/* Connection Status Indicator */}
+          <View style={styles.connectionStatus}>
+            <View
+              style={[
+                styles.connectionDot,
+                {
+                  backgroundColor: isLoading
+                    ? '#FFA500'
+                    : connectionError
+                    ? '#FF4444'
+                    : '#00FF00',
+                },
+              ]}
+            />
+            <Text style={styles.connectionText}>
+              {isLoading ? 'Connecting...' : connectionError ? 'Offline' : 'Live'}
+            </Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -181,6 +268,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(56,178,172,0.3)',
     borderRadius: 8,
     marginHorizontal: 2,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  connectionText: {
+    color: Colors.text,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

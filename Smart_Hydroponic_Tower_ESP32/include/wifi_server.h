@@ -13,5 +13,6 @@ extern const char* password;
 void initWiFi();
 void handleWebServer();
 String getSensorDataJSON();
+void handleCORSOptions(AsyncWebServerRequest *request);
 
 #endif

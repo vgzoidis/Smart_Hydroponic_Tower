@@ -5,6 +5,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include "DHT.h"
+#include "pump_control.h"
 
 // Pin definitions for sensors
 #define waterTempPin 13  // GPIO where the DS18B20 water temp sensor is connected to
@@ -83,7 +84,7 @@ void updateSensorValues() {
   currentSensors.envTemp = dht.readTemperature(); // Read temperature from DHT22 sensor
   currentSensors.envHumidity = dht.readHumidity(); // Read humidity from DHT22 sensor
   currentSensors.lightLevel = lightMeter.readLightLevel(); // measured in lux
-  currentSensors.pumpStatus = false;    // Mock pump status
+  currentSensors.pumpStatus = getPumpState();    // pump status
 }
 
 void updatePreviousValues() {

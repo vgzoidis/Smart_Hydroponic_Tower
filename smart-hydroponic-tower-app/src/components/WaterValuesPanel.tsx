@@ -54,7 +54,15 @@ export const WaterValuesPanel: React.FC<WaterValuesPanelProps> = ({
       <View style={styles.gridRow}>
         <View style={styles.gridItem}>
           <Text style={styles.gridLabel}>Level:</Text>
-          <Text style={[styles.gridValue, {color: Colors.good}]}>OK</Text>
+          <Text 
+            style={[
+              styles.gridValue, 
+              {
+                color: sensorData.waterLevel ? Colors.good : Colors.critical,
+              },
+            ]}>
+            {sensorData.waterLevel ? 'OK' : 'LOW'}
+          </Text>
         </View>
         <View style={styles.gridItem}>
           <Text style={styles.gridLabel}>Pump:</Text>

@@ -17,7 +17,7 @@ if ($devices -match "device$") {
 
 # Clean build cache first
 #Write-Host "`n🧹 Cleaning build cache..." -ForegroundColor Yellow
-.\android\gradlew -p android clean
+#.\android\gradlew -p android clean
 #Remove-Item -Recurse -Force "android\app\build" -ErrorAction SilentlyContinue
 #Write-Host "✅ Cache cleared" -ForegroundColor Green
 

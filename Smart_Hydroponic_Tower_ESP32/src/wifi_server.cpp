@@ -1,6 +1,7 @@
 #include "wifi_server.h"
 #include "sensors.h"
 #include "web_page.h"
+#include "pump_control.h"
 
 // WiFi credentials - UPDATE THESE FOR DIFFERENT NETWORKS!
 const char* ssid = "WLAN-ITI4";
@@ -17,16 +18,17 @@ IPAddress secondaryDNS(160, 40, 50, 1);   // Secondary DNS (optional)
 AsyncWebServer server(80);
 
 String getSensorDataJSON() {
-  StaticJsonDocument<300> doc;
+  StaticJsonDocument<350> doc;
 
   // Add sensor data to JSON with rounded values
   doc["lightLevel"] = round(currentSensors.lightLevel * 1);            // 0 decimal places
   doc["envTemp"] = round(currentSensors.envTemp * 100) / 100.0;        // 2 decimal place
   doc["envHum"] = round(currentSensors.envHumidity * 1);               // 0 decimal place
   doc["CO2"] = currentSensors.co2Level;                                // Keep as integer
-  doc["waterTemp"] = round(currentSensors.waterTemp * 100) / 100.0;    // 2 decimal place
+  doc["waterTemp"] = round(currentSensors.waterTemp * 10) / 10.0;      // 1 decimal place
   doc["phLevel"] = round(currentSensors.waterPH * 100) / 100.0;        // 2 decimal places
   doc["waterLevel"] = currentSensors.waterLevel;                       // Keep as boolean
+  doc["pumpStatus"] = currentSensors.pumpStatus;                       // Add pump status
   
   String jsonString;
   serializeJson(doc, jsonString);
@@ -53,7 +55,8 @@ void initWiFi() {
     Serial.println(WiFi.localIP());
   }
 
-  /*Serial.println("Network Information:");
+/* USE TO CONFIGURE NEW STATIC IP
+  Serial.println("Network Information:");
   Serial.print("Current ESP32 IP: ");
   Serial.println(WiFi.localIP());
   Serial.print("Gateway (router) IP: ");
@@ -79,6 +82,75 @@ void initWiFi() {
     response->addHeader("Access-Control-Allow-Headers", "Content-Type");
     request->send(response);
   });
+
+  // PUMP CONTROL ROUTES
+  // GET for reading pump status
+  server.on("/pump/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    PumpConfig config = getPumpConfig();
+    String json = "{\"pumpStatus\":" + String(getPumpState() ? "true" : "false") + 
+                  ",\"statusText\":\"" + getPumpStatusString() + "\"" +
+                  ",\"autoMode\":" + String(config.autoMode ? "true" : "false") +
+                  ",\"onTime\":" + String(config.onTime/6000) +
+                  ",\"offTime\":" + String(config.offTime/6000) + "}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // POST for changing pump state
+  server.on("/pump/toggle", HTTP_POST, [](AsyncWebServerRequest *request){
+    togglePump();
+    String json = "{\"pumpStatus\":" + String(getPumpState() ? "true" : "false") + 
+                  ",\"statusText\":\"" + getPumpStatusString() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // PUT for updating pump state
+  server.on("/pump/state", HTTP_PUT, [](AsyncWebServerRequest *request){
+    if (request->hasParam("state")) {
+      String stateParam = request->getParam("state")->value();
+      bool newState = (stateParam == "on" || stateParam == "1" || stateParam == "true");
+      setPumpState(newState);
+    }
+    String json = "{\"pumpStatus\":" + String(getPumpState() ? "true" : "false") + 
+                  ",\"statusText\":\"" + getPumpStatusString() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // PUT for updating pump configuration
+  server.on("/pump/config", HTTP_PUT, [](AsyncWebServerRequest *request){
+    // Handle auto mode
+    if (request->hasParam("autoMode")) {
+      bool enable = request->getParam("autoMode")->value() == "true";
+      enableAutoMode(enable);
+    }
+    
+    // Handle timing
+    if (request->hasParam("onTime") && request->hasParam("offTime")) {
+      int onTime = request->getParam("onTime")->value().toInt();
+      int offTime = request->getParam("offTime")->value().toInt();
+      setPumpTiming(onTime, offTime);
+    }
+    
+    PumpConfig config = getPumpConfig();
+    String json = "{\"autoMode\":" + String(config.autoMode ? "true" : "false") + 
+                  ",\"onTime\":" + String(config.onTime/60000) + 
+                  ",\"offTime\":" + String(config.offTime/60000) + 
+                  ",\"message\":\"Configuration updated\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Handle OPTIONS for CORS
+  server.on("/pump/toggle", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/pump/state", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/pump/config", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/pump/status", HTTP_OPTIONS, handleCORSOptions);
   
   // Handle preflight OPTIONS requests
   server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request){
@@ -105,4 +177,15 @@ void initWiFi() {
 void handleWebServer() {
   // This function can be used for any additional web server handling if needed
   // The AsyncWebServer handles requests automatically, so this might be empty
+}
+
+// Helper function for CORS
+void handleCORSOptions(AsyncWebServerRequest *request) {
+  AsyncWebServerResponse *response = request->beginResponse(200);
+  response->addHeader("Access-Control-Allow-Origin", "*"); // For security, you can restrict this to specific origins
+  //response->addHeader("Access-Control-Allow-Origin", "http://192.168.1.50"); // Only specific IP
+  //response->addHeader("Access-Control-Allow-Origin", "https://myapp.com");   // Only specific domain
+  response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+  request->send(response);
 }
