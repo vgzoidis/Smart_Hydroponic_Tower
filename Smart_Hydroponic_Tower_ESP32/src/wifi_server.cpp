@@ -36,6 +36,15 @@ String getSensorDataJSON() {
 }
 
 void initWiFi() {
+
+  // Configuring static IP
+  if(!WiFi.config(staticIP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("Failed to configure Static IP");
+  } else {
+    Serial.println("Static IP configured: ");
+    Serial.println(WiFi.localIP());
+  }
+
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
   
@@ -46,14 +55,6 @@ void initWiFi() {
 
   Serial.println();
   Serial.println("WiFi connected!");
-
-  // Configuring static IP
-  if(!WiFi.config(staticIP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("Failed to configure Static IP");
-  } else {
-    Serial.println("Static IP configured: ");
-    Serial.println(WiFi.localIP());
-  }
 
 /* USE TO CONFIGURE NEW STATIC IP
   Serial.println("Network Information:");
@@ -90,8 +91,8 @@ void initWiFi() {
     String json = "{\"pumpStatus\":" + String(getPumpState() ? "true" : "false") + 
                   ",\"statusText\":\"" + getPumpStatusString() + "\"" +
                   ",\"autoMode\":" + String(config.autoMode ? "true" : "false") +
-                  ",\"onTime\":" + String(config.onTime/6000) +
-                  ",\"offTime\":" + String(config.offTime/6000) + "}";
+                  ",\"onTime\":" + String(config.onTime/60000) +
+                  ",\"offTime\":" + String(config.offTime/60000) + "}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);

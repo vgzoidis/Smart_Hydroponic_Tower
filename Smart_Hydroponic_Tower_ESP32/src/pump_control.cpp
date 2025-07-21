@@ -127,20 +127,23 @@ unsigned long getPumpCycleTimeRemaining() {
 }
 
 String getPumpStatusString() {
-  String status = pumpState ? "Running" : "Stopped";
-  
-  if (pumpConfig.manualOverride) {
-    status += " (Manual)";
-  } else if (pumpConfig.autoMode) {
-    unsigned long remaining = getPumpCycleTimeRemaining();
-    if (remaining > 0) {
-      status += " (Auto - " + String(remaining / 1000) + "s remaining)";
-    } else {
-      status += " (Auto)";
-    }
-  } else {
-    status += " (Manual Mode)";
+  // prefix: ON or OFF
+  String status = pumpState ? "ON" : "OFF";
+
+  // if we’re not in pure auto mode, just show manual label
+  if (!pumpConfig.autoMode || pumpConfig.manualOverride) {
+    if (pumpConfig.manualOverride) status += " (Manual)";
+    return status;
   }
-  
+
+  // auto-mode with time remaining
+  unsigned long remMs = getPumpCycleTimeRemaining();
+  if (remMs > 0) {
+    unsigned long totalSecs = remMs / 1000;
+    unsigned long mins      = totalSecs / 60;
+    unsigned long secs      = totalSecs % 60;
+    status += " (" + String(mins) + "m " + String(secs)
+           + "s until turning " + (pumpState ? "off)" : "on)");
+  }
   return status;
 }

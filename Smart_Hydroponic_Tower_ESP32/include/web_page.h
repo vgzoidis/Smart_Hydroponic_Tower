@@ -38,17 +38,17 @@ const char index_html[] PROGMEM = R"rawliteral(
             <h2>🚰 Pump Control</h2>
             <div class='sensor'>Status: <span class='value' id='pumpStatus'>Loading...</span></div>
             <div class='sensor'>Mode: <span class='value' id='pumpMode'>Loading...</span></div>
-            <div class='sensor'>Duration: <span class='value' id='pumpDuration'>Loading...</span> min</div>
-            <div class='sensor'>Interval: <span class='value' id='pumpInterval'>Loading...</span> min</div>
+            <div class='sensor'>On Time: <span class='value' id='pumpOnTime'>Loading.</span></div>
+            <div class='sensor'>Off Time: <span class='value' id='pumpOffTime'>Loading.</span></div>
             <div class='sensor'>Status Text: <span class='value' id='pumpStatusText'>Loading...</span></div>
             <button class='btn' id='toggleBtn' onclick='togglePump()'>Toggle Pump</button>
             <button class='btn' onclick='setPumpState(true)'>Set ON</button>
             <button class='btn' onclick='setPumpState(false)'>Set OFF</button>
             <div class='input-group'>
-                <label for='duration'>Duration (min):</label>
-                <input type='number' id='duration' min='1' value='1' style='width:60px;'>
-                <label for='interval'>Interval (min):</label>
-                <input type='number' id='interval' min='1' value='5' style='width:60px;'>
+                <label for='onTime'>On Time (min):</label>
+                <input type='number' id='onTime' min='1' value='1' style='width:60px;'>
+                <label for='offTime'>Off Time (min):</label>
+                <input type='number' id='offTime' min='1' value='5' style='width:60px;'>
                 <button class='btn' onclick='updateSchedule()'>Update Schedule</button>
             </div>
             <div class='input-group'>
@@ -81,13 +81,18 @@ const char index_html[] PROGMEM = R"rawliteral(
             fetch('/pump/status')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('pumpStatus').textContent = data.pumpStatus ? 'ON' : 'OFF';
+                    document.getElementById('pumpStatus').textContent = data.pumpStatus  ? 'ON'  : 'OFF';
                     document.getElementById('pumpMode').textContent = data.autoMode ? 'Auto' : 'Manual';
-                    document.getElementById('pumpDuration').textContent = data.duration ? data.duration : (data.onTime ? data.onTime : 'N/A');
-                    document.getElementById('pumpInterval').textContent = data.interval ? data.interval : (data.offTime ? data.offTime : 'N/A');
-                    document.getElementById('pumpStatusText').textContent = data.statusText;
-                    document.getElementById('autoMode').value = data.autoMode ? 'true' : 'false';
-                });
+                    // Show On Time and Off Time in minutes, reflecting input
+                    document.getElementById('pumpOnTime').textContent  =
+                        data.onTime  ? data.onTime  + ' min' : 'N/A';
+                    document.getElementById('pumpOffTime').textContent =
+                        data.offTime ? data.offTime + ' min' : 'N/A';
+                    // Convert time remaining in statusText from ms to min if present
+                    let statusText = data.statusText;
+                    document.getElementById('pumpStatusText').textContent = statusText;
+                    document.getElementById('autoMode').value            = data.autoMode   ? 'true' : 'false';
+             });
         }
 
         function showApiResult(msg, isError) {
@@ -97,33 +102,42 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
 
         function togglePump() {
-            fetch('/pump/toggle', {method: 'POST'})
-                .then(response => response.json())
-                .then(data => {
-                    updatePumpStatus();
-                    showApiResult('Pump toggled: ' + (data.pumpStatus ? 'ON' : 'OFF'), false);
-                })
-                .catch(() => showApiResult('Failed to toggle pump', true));
+            // Set autoMode to false (manual) when toggling
+            fetch('/pump/config?autoMode=false', {method: 'PUT'})
+                .then(() => {
+                    fetch('/pump/toggle', {method: 'POST'})
+                        .then(response => response.json())
+                        .then(data => {
+                            updatePumpStatus();
+                            showApiResult('Pump toggled: ' + (data.pumpStatus ? 'ON' : 'OFF'), false);
+                        })
+                        .catch(() => showApiResult('Failed to toggle pump', true));
+                });
         }
 
         function setPumpState(state) {
-            fetch('/pump/state?state=' + (state ? 'on' : 'off'), {method: 'PUT'})
-                .then(response => response.json())
-                .then(data => {
-                    updatePumpStatus();
-                    showApiResult('Pump set to ' + (state ? 'ON' : 'OFF'), false);
-                })
-                .catch(() => showApiResult('Failed to set pump state', true));
+            // Set autoMode to false (manual) when setting pump state
+            fetch('/pump/config?autoMode=false', {method: 'PUT'})
+                .then(() => {
+                    fetch('/pump/state?state=' + (state ? 'on' : 'off'), {method: 'PUT'})
+                        .then(response => response.json())
+                        .then(data => {
+                            updatePumpStatus();
+                            showApiResult('Pump set to ' + (state ? 'ON' : 'OFF'), false);
+                        })
+                        .catch(() => showApiResult('Failed to set pump state', true));
+                });
         }
 
         function updateSchedule() {
-            var duration = document.getElementById('duration').value;
-            var interval = document.getElementById('interval').value;
-            fetch('/pump/schedule?duration=' + duration + '&interval=' + interval, {method: 'PUT'})
+            var onTimeMin = document.getElementById('onTime').value;
+            var offTimeMin = document.getElementById('offTime').value;
+            // Set autoMode to true when updating schedule
+           fetch('/pump/config?onTime=' + onTimeMin + '&offTime=' + offTimeMin + '&autoMode=true', { method: 'PUT' })
                 .then(response => response.json())
                 .then(data => {
                     updatePumpStatus();
-                    showApiResult('Schedule updated: ' + duration + ' min ON, every ' + interval + ' min', false);
+                    showApiResult('Schedule updated: ' + onTimeMin + ' min ON, every ' + offTimeMin + ' min', false);
                 })
                 .catch(() => showApiResult('Failed to update schedule', true));
         }
