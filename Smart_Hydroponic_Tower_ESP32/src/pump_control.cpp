@@ -11,9 +11,16 @@ PumpConfig pumpConfig = {
   .manualOverride = false
 };
 
+// PWM config for ESP32
+#define PUMP_PWM_CHANNEL 0
+#define PUMP_PWM_FREQ 1000
+#define PUMP_PWM_RES 8
+#define PUMP_PWM_ON_DUTY ((int)(0.4 * 255)) // 40% duty cycle
+
 void initPump() {
-  pinMode(waterPumpPin, OUTPUT);
-  digitalWrite(waterPumpPin, LOW); // Start with pump off
+  ledcSetup(PUMP_PWM_CHANNEL, PUMP_PWM_FREQ, PUMP_PWM_RES);
+  ledcAttachPin(waterPumpPin, PUMP_PWM_CHANNEL);
+  ledcWrite(PUMP_PWM_CHANNEL, 0); // Start with pump off
   pumpState = false;
   pumpLastChange = millis();
   Serial.println("Pump initialized on pin " + String(waterPumpPin));
@@ -33,7 +40,7 @@ void updatePumpControl() {
     // Pump is currently ON - check if it should turn OFF
     if (elapsedTime >= pumpConfig.onTime) {
       pumpState = false;
-      digitalWrite(waterPumpPin, LOW);
+      ledcWrite(PUMP_PWM_CHANNEL, 0);
       pumpLastChange = currentTime;
       Serial.println("Auto: Pump turned OFF");
     }
@@ -41,9 +48,9 @@ void updatePumpControl() {
     // Pump is currently OFF - check if it should turn ON
     if (elapsedTime >= pumpConfig.offTime) {
       pumpState = true;
-      digitalWrite(waterPumpPin, HIGH);
+      ledcWrite(PUMP_PWM_CHANNEL, PUMP_PWM_ON_DUTY);
       pumpLastChange = currentTime;
-      Serial.println("Auto: Pump turned ON");
+      Serial.println("Auto: Pump turned ON (40%% speed)");
     }
   }
   
@@ -53,12 +60,10 @@ void updatePumpControl() {
 
 void setPumpState(bool state) {
   pumpState = state;
-  digitalWrite(waterPumpPin, state ? HIGH : LOW);
+  ledcWrite(PUMP_PWM_CHANNEL, state ? PUMP_PWM_ON_DUTY : 0);
   pumpLastChange = millis();
   currentSensors.pumpStatus = state;
-  
-  Serial.println(state ? "Manual: Pump turned ON" : "Manual: Pump turned OFF");
-  
+  Serial.println(state ? "Manual: Pump turned ON (40%% speed)" : "Manual: Pump turned OFF");
   // Enable manual override when manually controlling
   pumpConfig.manualOverride = true;
 }

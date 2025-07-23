@@ -35,6 +35,8 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true); // Attach interrupt function to timer
   timerAlarmWrite(timer, measureInterval, true); // Set timer to trigger every 1 seconds
   timerAlarmEnable(timer); // Enable the timer
+  pinMode(18, OUTPUT); // Set GPIO 18 as output for LED indication
+  
   
   //Serial.println("System initialized successfully!");
 }
@@ -47,6 +49,9 @@ void loop() {
   
   // Handle any additional web server tasks if needed
   handleWebServer();
-
+  digitalWrite(18, LOW);
+  delay(2000);
+  digitalWrite(18, HIGH);
+  delay(2000);
   
 }
