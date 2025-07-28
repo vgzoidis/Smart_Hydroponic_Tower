@@ -38,8 +38,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             <h2>🚰 Pump Control</h2>
             <div class='sensor'>Status: <span class='value' id='pumpStatus'>Loading...</span></div>
             <div class='sensor'>Mode: <span class='value' id='pumpMode'>Loading...</span></div>
-            <div class='sensor'>On Time: <span class='value' id='pumpOnTime'>Loading.</span></div>
-            <div class='sensor'>Off Time: <span class='value' id='pumpOffTime'>Loading.</span></div>
+            <div class='sensor'>On Time: <span class='value' id='pumpOnTime'>Loading...</span></div>
+            <div class='sensor'>Off Time: <span class='value' id='pumpOffTime'>Loading...</span></div>
             <div class='sensor'>Status Text: <span class='value' id='pumpStatusText'>Loading...</span></div>
             <button class='btn' id='toggleBtn' onclick='togglePump()'>Toggle Pump</button>
             <button class='btn' onclick='setPumpState(true)'>Set ON</button>

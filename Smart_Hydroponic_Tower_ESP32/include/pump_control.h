@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // Pump configuration
-#define waterPumpPin 19  // GPIO pin for water pump
+#define waterPumpPin 23  // GPIO pin for water pump
 
 // Pump control structure
 struct PumpConfig {
