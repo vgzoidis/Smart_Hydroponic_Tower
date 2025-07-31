@@ -28,7 +28,7 @@ void setup() {
   initDisplay(); // Initialize display and draw the UI 
   initSensors(); // Initialize sensors
   initPump();    // Initialize pump control
-  //initWiFi(); // Initialize WiFi and web server
+  initWiFi(); // Initialize WiFi and web server
 
   // Initialize timer (Timer 0, divider 80, count up)
   timer = timerBegin(0, 80, true); // ESP32 clock is 80MHz, so: 80MHz/80 = 1MHz = 1μs per tick
@@ -38,9 +38,10 @@ void setup() {
   pinMode(18, OUTPUT); // Set GPIO 18 as output for LED indication
   
   
+  
+  //ledcSetup(1, 1000, 8);
+  //ledcAttachPin(19, 1);
   //Serial.println("System initialized successfully!");
-  ledcSetup(1, 1000, 8);
-  ledcAttachPin(19, 1);
 }
 
 void loop() {
@@ -51,9 +52,9 @@ void loop() {
   
   // Handle any additional web server tasks if needed
   handleWebServer();
-  ledcWrite(1, 100);
-  delay(2000);
-  ledcWrite(1, 0);
-  delay(2000);
+  //ledcWrite(1, 100);
+  //delay(1000);
+  //ledcWrite(1, 0);
+  //delay(4500);
   
 }

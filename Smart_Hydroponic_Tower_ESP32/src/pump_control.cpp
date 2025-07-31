@@ -5,8 +5,8 @@
 bool pumpState = false;
 unsigned long pumpLastChange = 0;
 PumpConfig pumpConfig = {
-  .onTime = 1*60000,      // 1 minute on by default
-  .offTime = 1*60000,     // 1 minute off by default
+  .onTime = 15*60000,      // 15 minutes on by default
+  .offTime = 45*60000,     // 45 minutes off by default
   .autoMode = true,     // Auto mode enabled by default
   .manualOverride = false
 };

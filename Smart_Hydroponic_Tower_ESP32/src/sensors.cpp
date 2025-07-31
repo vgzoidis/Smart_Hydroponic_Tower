@@ -6,11 +6,13 @@
 #include <DallasTemperature.h>
 #include "DHT.h"
 #include "pump_control.h"
+#include "DFRobot_ESP_EC.h"
 
 // Pin definitions for sensors
 #define waterTempPin 13  // GPIO where the DS18B20 water temp sensor is connected to
 #define waterLevelPin 14 // GPIO pin for water level sensor (with voltage divider)
-#define waterPhPin 36    // GPIO pin for pH meter Analog output
+#define waterPHPin 36    // GPIO pin for pH meter Analog output
+#define waterECPin 34    // GPIO pin for EC meter Analog output
 #define DHTPIN 4         // GPIO pin for DHT22 sensor
 
 #define phOffset -1.3    // ph sensor deviation compensate
@@ -28,9 +30,8 @@ DallasTemperature sensors(&oneWire); // Pass our oneWire reference to Dallas Tem
 
 MHZ19 myMHZ19; // CO2 sensor object
 HardwareSerial mySerial(2); // On ESP32 we have 2 USARTS available
-
-
 BH1750 lightMeter; //Light sensor object
+DFRobot_ESP_EC ec; // EC sensor object
 
 
 // Global sensor data
@@ -71,6 +72,7 @@ void initSensors() {
   mySerial.begin(BAUDRATE); // (Uno example) device to MH-Z19 serial start
   myMHZ19.begin(mySerial); // *Serial(Stream) reference must be passed to library begin().
   myMHZ19.autoCalibration(); // Turn auto calibration ON (OFF autoCalibration(false))
+  ec.begin(); // Initialize the EC sensor
   
   //Serial.println("Sensors initialized");
 }
@@ -78,9 +80,11 @@ void initSensors() {
 void updateSensorValues() {
   currentSensors.waterLevel = !digitalRead(waterLevelPin); // The water level  sensor reads LOW when water is present and HIGH there isn't
   currentSensors.co2Level = myMHZ19.getCO2(); // Request CO2 (as ppm)
-  currentSensors.waterPH = 3.5*(analogRead(waterPhPin)*5*1.5/4096.)+phOffset; // Convert the analog value to pH (*1.5 because of the voltage divider)
+  currentSensors.waterPH = 3.5*(analogRead(waterPHPin)*5*1.5/4096)+phOffset; // Convert the analog value to pH (*1.5 because of the voltage divider)
   sensors.requestTemperatures(); // Request temperature from DS18B20 water temperature sensor
   currentSensors.waterTemp = sensors.getTempCByIndex(0); // water temperature in Celsius
+  currentSensors.waterEC = ec.readEC(3.3*analogRead(waterECPin)/4096, currentSensors.waterTemp); // Read EC value from the sensor
+
   currentSensors.envTemp = dht.readTemperature(); // Read temperature from DHT22 sensor
   currentSensors.envHumidity = dht.readHumidity(); // Read humidity from DHT22 sensor
   currentSensors.lightLevel = lightMeter.readLightLevel(); // measured in lux
@@ -91,6 +95,7 @@ void updatePreviousValues() {
   previousSensors.waterLevel = currentSensors.waterLevel;
   previousSensors.co2Level = currentSensors.co2Level;
   previousSensors.waterPH = currentSensors.waterPH;
+  previousSensors.waterEC = currentSensors.waterEC;
   previousSensors.waterTemp = currentSensors.waterTemp;
   previousSensors.envTemp = currentSensors.envTemp;
   previousSensors.envHumidity = currentSensors.envHumidity;

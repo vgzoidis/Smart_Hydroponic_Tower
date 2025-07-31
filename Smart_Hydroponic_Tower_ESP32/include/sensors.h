@@ -8,6 +8,7 @@ struct SensorData {
   bool waterLevel;
   float co2Level;
   float waterPH;
+  float waterEC;
   float waterTemp;
   float envTemp;
   float envHumidity;
@@ -20,6 +21,7 @@ struct PreviousValues {
   bool waterLevel;
   float co2Level;
   float waterPH;
+  float waterEC;
   float waterTemp;
   float envTemp;
   float envHumidity;
