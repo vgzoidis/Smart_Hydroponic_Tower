@@ -4,15 +4,15 @@
 #include "pump_control.h"
 
 // WiFi credentials - UPDATE THESE FOR DIFFERENT NETWORKS!
-const char* ssid = "WLAN-ITI4";
-const char* password = "Iti.Wireless3";
+const char* ssid = "Xperia 10 II_5346";
+const char* password = "e741ae2843e5";
 
 // Static IP configuration
-IPAddress staticIP(160, 40, 48, 23); // ESP32 static IP
-IPAddress gateway(160, 40, 50, 1);    // IP Address of your network gateway (router)
-IPAddress subnet(255, 255, 248, 0);   // Subnet mask
-IPAddress primaryDNS(160, 40, 50, 4); // Primary DNS (optional)
-IPAddress secondaryDNS(160, 40, 50, 1);   // Secondary DNS (optional)
+IPAddress staticIP(10, 70, 134, 23); // ESP32 static IP
+IPAddress gateway(10, 70, 134, 35);    // IP Address of your network gateway (router)
+IPAddress subnet(255, 255, 255, 0);   // Subnet mask
+IPAddress primaryDNS(10, 70, 134, 35); // Primary DNS (optional)
+IPAddress secondaryDNS(0, 0, 0, 0);   // Secondary DNS (optional)
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -27,6 +27,7 @@ String getSensorDataJSON() {
   doc["CO2"] = currentSensors.co2Level;                                // Keep as integer
   doc["waterTemp"] = round(currentSensors.waterTemp * 10) / 10.0;      // 1 decimal place
   doc["phLevel"] = round(currentSensors.waterPH * 100) / 100.0;        // 2 decimal places
+  doc["ecLevel"] = round(currentSensors.waterEC * 100) / 100.0;        // 2 decimal places
   doc["waterLevel"] = currentSensors.waterLevel;                       // Keep as boolean
   doc["pumpStatus"] = currentSensors.pumpStatus;                       // Add pump status
   
@@ -43,7 +44,7 @@ void initWiFi() {
   } else {
     Serial.println("Static IP configured: ");
     Serial.println(WiFi.localIP());
-  }
+  }//*/
 
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
@@ -56,7 +57,7 @@ void initWiFi() {
   Serial.println();
   Serial.println("WiFi connected!");
 
-/* USE TO CONFIGURE NEW STATIC IP
+// USE TO CONFIGURE NEW STATIC IP
   Serial.println("Network Information:");
   Serial.print("Current ESP32 IP: ");
   Serial.println(WiFi.localIP());
@@ -67,7 +68,7 @@ void initWiFi() {
   Serial.print("Primary DNS: ");
   Serial.println(WiFi.dnsIP(0));
   Serial.print("Secondary DNS: ");
-  Serial.println(WiFi.dnsIP(1));*/
+  Serial.println(WiFi.dnsIP(1));
 
   
   // Setup web server routes

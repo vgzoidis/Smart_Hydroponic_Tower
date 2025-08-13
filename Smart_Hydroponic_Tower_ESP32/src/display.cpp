@@ -24,9 +24,10 @@ void initDisplay() {
 
   gfx->setTextSize(1); // Labels
   gfx->setCursor(15, 290); gfx->print("H2O: ");
-  gfx->setCursor(15, 300); gfx->print("pH: ");
-  gfx->setCursor(15, 310); gfx->print("Level: ");
+  gfx->setCursor(15, 300); gfx->print("PH: ");
+  gfx->setCursor(15, 310); gfx->print("EC: ");
   gfx->setCursor(170, 295); gfx->print("Pump: ");
+  gfx->setCursor(170, 305); gfx->print("Level: ");
   gfx->setCursor(162, 105); gfx->print("Temp: ");
   gfx->setCursor(162, 120); gfx->print("Hum: ");
   gfx->setCursor(85, 72);   gfx->print("Light: ");
@@ -54,6 +55,7 @@ void drawSensorStatus() {
   // Get all status colors at the start (EDIT THESE FOR YOUR SENSOR RANGES)
   uint16_t waterTempColor  = getStatusColor(currentSensors.waterTemp, 18, 22, 25, 15, 28, 12);
   uint16_t phColor         = getStatusColor(currentSensors.waterPH, 5.5, 6.5, 5, 7, 4, 8);
+  uint16_t waterECColor    = getStatusColor(currentSensors.waterEC, 1.2, 2.0, 0.8, 2.5, 0.5, 3.0);
   uint16_t waterLevelColor = getStatusColor(currentSensors.waterLevel);
   uint16_t pumpStatusColor = getStatusColor(currentSensors.pumpStatus);
   uint16_t envTempColor    = getStatusColor(currentSensors.envTemp, 15, 25, 13, 30, 10, 33);
@@ -66,8 +68,9 @@ void drawSensorStatus() {
   gfx->setTextColor(BLACK);
   gfx->setCursor(45, 290);  gfx->printf("%.1fC", previousSensors.waterTemp);
   gfx->setCursor(39, 300);  gfx->printf("%.1f", previousSensors.waterPH);
-  gfx->setCursor(57, 310);  gfx->printf("%s", previousSensors.waterLevel ? "OK" : "LOW");
+  gfx->setCursor(39, 310);  gfx->printf("%.2f", previousSensors.waterEC);
   gfx->setCursor(206, 295); gfx->printf("%s", previousSensors.pumpStatus ? "ON" : "OFF");
+  gfx->setCursor(212, 305); gfx->printf("%s", previousSensors.waterLevel ? "OK" : "LOW");
   gfx->setCursor(198, 105); gfx->printf("%.1fC", previousSensors.envTemp);
   gfx->setCursor(192, 120); gfx->printf("%.0f%%", previousSensors.envHumidity);
   gfx->setCursor(134, 72);  gfx->printf("%.0f lx", previousSensors.lightLevel);
@@ -76,8 +79,9 @@ void drawSensorStatus() {
   // Draw current values (draw label in WHITE, then value in color)
   gfx->setCursor(45, 290); gfx->setTextColor(waterTempColor);  gfx->printf("%.1fC", currentSensors.waterTemp);
   gfx->setCursor(39, 300); gfx->setTextColor(phColor);         gfx->printf("%.1f", currentSensors.waterPH);
-  gfx->setCursor(57, 310); gfx->setTextColor(waterLevelColor); gfx->print(currentSensors.waterLevel ? "OK" : "LOW");
+  gfx->setCursor(39, 310); gfx->setTextColor(waterECColor);    gfx->printf("%.2f", currentSensors.waterEC);
   gfx->setCursor(206, 295);gfx->setTextColor(pumpStatusColor); gfx->print(currentSensors.pumpStatus ? "ON" : "OFF");
+  gfx->setCursor(212, 305);gfx->setTextColor(waterLevelColor); gfx->print(currentSensors.waterLevel ? "OK" : "LOW");
   gfx->setCursor(198, 105);gfx->setTextColor(envTempColor);    gfx->printf("%.1fC", currentSensors.envTemp);
   gfx->setCursor(192, 120);gfx->setTextColor(humidityColor);   gfx->printf("%.0f%%", currentSensors.envHumidity);
   gfx->setCursor(134, 72); gfx->setTextColor(lightColor);      gfx->printf("%.0f lx", currentSensors.lightLevel);
@@ -87,12 +91,12 @@ void drawSensorStatus() {
   gfx->fillRect(32, 44, 120, 16, BLACK); // Clear text area (width: 120px, height: 16px for size 2 text)
   
   // Calculate overall system status based on worst sensor (excluding pump)
-  uint16_t sensorColors[] = {waterTempColor, phColor, waterLevelColor, envTempColor, humidityColor, lightColor, co2Color};
+  uint16_t sensorColors[] = {waterTempColor, phColor, waterECColor, waterLevelColor, envTempColor, humidityColor, lightColor, co2Color};
   uint16_t systemStatusColor = GREEN; // Start with best status
   const char* systemStatusText = "System OK";
   
   // Check all sensor colors and find the worst one
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     if (sensorColors[i] == RED) {
       systemStatusColor = RED;
       systemStatusText = "Critical";

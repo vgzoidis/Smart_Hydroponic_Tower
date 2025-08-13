@@ -83,8 +83,7 @@ void updateSensorValues() {
   currentSensors.waterPH = 3.5*(analogRead(waterPHPin)*5*1.5/4096)+phOffset; // Convert the analog value to pH (*1.5 because of the voltage divider)
   sensors.requestTemperatures(); // Request temperature from DS18B20 water temperature sensor
   currentSensors.waterTemp = sensors.getTempCByIndex(0); // water temperature in Celsius
-  currentSensors.waterEC = ec.readEC(3.3*analogRead(waterECPin)/4096, currentSensors.waterTemp); // Read EC value from the sensor
-
+  currentSensors.waterEC = ec.readEC(analogRead(waterECPin), currentSensors.waterTemp); // Read EC value from the sensor
   currentSensors.envTemp = dht.readTemperature(); // Read temperature from DHT22 sensor
   currentSensors.envHumidity = dht.readHumidity(); // Read humidity from DHT22 sensor
   currentSensors.lightLevel = lightMeter.readLightLevel(); // measured in lux

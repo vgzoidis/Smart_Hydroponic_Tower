@@ -31,7 +31,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             <div class='sensor'>💧 Humidity: <span class='value' id='envHum'>Loading...</span></div>
             <div class='sensor'>🫁 CO2 Level: <span class='value' id='co2'>Loading...</span></div>
             <div class='sensor'>💦 Water Temp: <span class='value' id='waterTemp'>Loading...</span></div>
-            <div class='sensor'>⚗️ pH Level: <span class='value' id='pH'>Loading...</span></div>
+            <div class='sensor'>⚗️ PH Level: <span class='value' id='pH'>Loading...</span></div>
+            <div class='sensor'>⚡ EC Level: <span class='value' id='ec'>Loading...</span></div>
             <div class='sensor'>🌊 Water Level: <span class='value' id='waterLevel'>Loading...</span></div>
         </div>
         <div class='pump-section'>
@@ -73,6 +74,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     document.getElementById('co2').textContent = data.CO2 + ' ppm';
                     document.getElementById('waterTemp').textContent = data.waterTemp + ' °C';
                     document.getElementById('pH').textContent = data.phLevel;
+                    document.getElementById('ec').textContent = data.ecLevel + ' mS/cm';
                     document.getElementById('waterLevel').textContent = data.waterLevel ? 'OK' : 'LOW';
                 });
         }
