@@ -35,13 +35,7 @@ void setup() {
   timerAttachInterrupt(timer, &onTimer, true); // Attach interrupt function to timer
   timerAlarmWrite(timer, measureInterval, true); // Set timer to trigger every 1 seconds
   timerAlarmEnable(timer); // Enable the timer
-  pinMode(18, OUTPUT); // Set GPIO 18 as output for LED indication
-  
-  
-  
-  //ledcSetup(1, 1000, 8);
-  //ledcAttachPin(19, 1);
-  //Serial.println("System initialized successfully!");
+ 
 }
 
 void loop() {
@@ -52,9 +46,5 @@ void loop() {
   
   // Handle any additional web server tasks if needed
   handleWebServer();
-  //ledcWrite(1, 100);
-  //delay(1000);
-  //ledcWrite(1, 0);
-  //delay(4500);
-  
+
 }

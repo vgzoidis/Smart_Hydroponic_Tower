@@ -12,7 +12,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 // Import organized components and utilities
 import {Colors} from './src/constants/Colors';
-import {getSensorStatus} from './src/utils/sensorUtils';
+import {getSensorStatus, getECStatus} from './src/utils/sensorUtils';
 import {StatusIndicator} from './src/components/StatusIndicator';
 import {DashboardScreen} from './src/screens/DashboardScreen';
 import {PlottingScreen} from './src/screens/PlottingScreen';
@@ -27,6 +27,7 @@ function App(): JSX.Element {
   const [sensorData, setSensorData] = useState({
     waterTemp: 0,
     waterPH: 0,
+    ecLevel: 0,
     waterLevel: false,
     pumpStatus: false,
     envTemp: 0,
@@ -43,7 +44,7 @@ function App(): JSX.Element {
         setTimeout(() => reject(new Error('Request timeout')), 8000)
       );
       
-      const fetchPromise = fetch('http://160.40.48.23/sensors', {
+      const fetchPromise = fetch('http://10.65.171.23/sensors', { //change this line for different networks
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -63,8 +64,9 @@ function App(): JSX.Element {
       setSensorData({
         waterTemp: data.waterTemp || 0,
         waterPH: data.phLevel || 0,
+        ecLevel: data.ecLevel || 0,
         waterLevel: data.waterLevel || false,
-        pumpStatus: false, // Not provided by server, keeping default
+        pumpStatus: data.pumpStatus || false, // Now using server data
         envTemp: data.envTemp || 0,
         humidity: data.envHum || 0,
         lightLevel: data.lightLevel || 0,
@@ -77,11 +79,55 @@ function App(): JSX.Element {
       console.log('Sensor data updated successfully:', data);
     } catch (error) {
       console.error('Error fetching sensor data:', error);
+      
+      // Type-safe error handling
+      const errorDetails = error instanceof Error ? {
+        message: error.message,
+        type: error.constructor.name,
+        stack: error.stack
+      } : {
+        message: String(error),
+        type: 'Unknown',
+        stack: 'N/A'
+      };
+      
+      console.error('Error details:', errorDetails);
+      
+      // Show detailed error in console for debugging
+      const errorMsg = `Failed to connect to ESP32 at 10.70.134.23/sensors\n\nError: ${errorDetails.message}\nType: ${errorDetails.type}`;
+      console.log('DETAILED ERROR:', errorMsg);
+      
       setConnectionError(true);
       setIsLoading(false);
+    }
+  };
+
+  // Function to toggle pump state
+  const togglePump = async () => {
+    try {
+      const response = await fetch('http://10.65.171.23/pump/toggle', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
       
-      // No popup - just log the error and update the connection status indicator
-      console.log('Connection failed, using connection status indicator only');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Pump toggle response:', data);
+      
+      // Update local state immediately for better UX
+      setSensorData(prev => ({
+        ...prev,
+        pumpStatus: data.pumpStatus
+      }));
+      
+    } catch (error) {
+      console.error('Error toggling pump:', error);
     }
   };
 
@@ -102,6 +148,7 @@ function App(): JSX.Element {
   // Calculate statuses
   const waterTempStatus = getSensorStatus(sensorData.waterTemp, 18, 25);
   const phStatus = getSensorStatus(sensorData.waterPH, 5.5, 7.0);
+  const ecStatus = getECStatus(sensorData.ecLevel);
   const tempStatus = getSensorStatus(sensorData.envTemp, 20, 26);
   const humidityStatus = getSensorStatus(sensorData.humidity, 40, 60);
   const lightStatus = getSensorStatus(sensorData.lightLevel, 150, 300);
@@ -111,6 +158,7 @@ function App(): JSX.Element {
   const allStatuses = [
     waterTempStatus,
     phStatus,
+    ecStatus,
     tempStatus,
     humidityStatus,
     lightStatus,
@@ -192,10 +240,12 @@ function App(): JSX.Element {
             sensorData={sensorData}
             waterTempStatus={waterTempStatus}
             phStatus={phStatus}
+            ecStatus={ecStatus}
             tempStatus={tempStatus}
             humidityStatus={humidityStatus}
             lightStatus={lightStatus}
             co2Status={co2Status}
+            onTogglePump={togglePump}
           />
         )}
         {activeTab === 'plotting' && <PlottingScreen />}

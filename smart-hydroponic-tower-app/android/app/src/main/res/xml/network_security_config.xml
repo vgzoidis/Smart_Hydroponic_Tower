@@ -2,7 +2,9 @@
 <network-security-config>
     <!-- Allow HTTP traffic for the hydroponic sensor server -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">160.40.48.23</domain>
+        <!--
+        <domain includeSubdomains="true">160.40.48.23</domain>-->
+        <domain includeSubdomains="true">10.65.171.23</domain>
     </domain-config>
     
     <!-- Allow localhost for development -->
@@ -13,5 +15,5 @@
     </domain-config>
     
     <!-- Standard security configuration for production app -->
-    <base-config cleartextTrafficPermitted="false" />
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

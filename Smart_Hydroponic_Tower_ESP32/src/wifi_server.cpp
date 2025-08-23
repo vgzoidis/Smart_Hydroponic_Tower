@@ -7,11 +7,11 @@
 const char* ssid = "Xperia 10 II_5346";
 const char* password = "e741ae2843e5";
 
-// Static IP configuration
-IPAddress staticIP(10, 70, 134, 23); // ESP32 static IP
-IPAddress gateway(10, 70, 134, 35);    // IP Address of your network gateway (router)
+// Static IP configuration (change if setting up on a new network except last octet of static IP)
+IPAddress staticIP(10, 65, 171, 23); // ESP32 static IP
+IPAddress gateway(10, 65, 171, 1);    // IP Address of your network gateway (router)
 IPAddress subnet(255, 255, 255, 0);   // Subnet mask
-IPAddress primaryDNS(10, 70, 134, 35); // Primary DNS (optional)
+IPAddress primaryDNS(10, 65, 171, 1); // Primary DNS (optional)
 IPAddress secondaryDNS(0, 0, 0, 0);   // Secondary DNS (optional)
 
 // Create AsyncWebServer object on port 80
@@ -38,7 +38,7 @@ String getSensorDataJSON() {
 
 void initWiFi() {
 
-  // Configuring static IP
+  //*/ Configuring static IP (comment if setting up on a new network)
   if(!WiFi.config(staticIP, gateway, subnet, primaryDNS, secondaryDNS)) {
     Serial.println("Failed to configure Static IP");
   } else {
@@ -58,6 +58,7 @@ void initWiFi() {
   Serial.println("WiFi connected!");
 
 // USE TO CONFIGURE NEW STATIC IP
+/*/ Delete this line while setting up on a new network
   Serial.println("Network Information:");
   Serial.print("Current ESP32 IP: ");
   Serial.println(WiFi.localIP());
@@ -68,7 +69,7 @@ void initWiFi() {
   Serial.print("Primary DNS: ");
   Serial.println(WiFi.dnsIP(0));
   Serial.print("Secondary DNS: ");
-  Serial.println(WiFi.dnsIP(1));
+  Serial.println(WiFi.dnsIP(1));//*/
 
   
   // Setup web server routes
@@ -173,7 +174,8 @@ void initWiFi() {
   
   server.begin();
   Serial.println("HTTP server started");
-  Serial.println("Access a simple dashboard at: http://160.40.48.23");
+    Serial.print("Access a simple dashboard at: http://");
+    Serial.println(WiFi.localIP());
 }
 
 void handleWebServer() {

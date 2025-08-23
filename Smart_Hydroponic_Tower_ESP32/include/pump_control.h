@@ -5,6 +5,8 @@
 
 // Pump configuration
 #define waterPumpPin 23  // GPIO pin for water pump
+#define phDownPumpPin 19   // GPIO pin for pH down pump
+#define phUpPumpPin 18    // GPIO pin for pH up pump
 
 // Pump control structure
 struct PumpConfig {

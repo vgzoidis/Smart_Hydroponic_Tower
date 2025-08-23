@@ -155,8 +155,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                 .catch(() => showApiResult('Failed to set auto mode', true));
         }
 
-        setInterval(updateSensors, 2000);
-        setInterval(updatePumpStatus, 2000);
+        setInterval(updateSensors, 1000);
+        setInterval(updatePumpStatus, 1000);
         updateSensors();
         updatePumpStatus();
     </script>

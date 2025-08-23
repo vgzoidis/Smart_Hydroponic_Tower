@@ -25,6 +25,11 @@ void initPump() {
   pumpLastChange = millis();
   Serial.println("Pump initialized on pin " + String(waterPumpPin));
   Serial.printf("Auto cycle: %ds ON, %ds OFF\n", pumpConfig.onTime/1000, pumpConfig.offTime/1000);
+
+  pinMode(18, OUTPUT); // Initialize phUpPumpPin as output
+  pinMode(19, OUTPUT); // Initialize phDownPumpPin as output
+  digitalWrite(18,1);
+  digitalWrite(19,1);
 }
 
 void updatePumpControl() {
