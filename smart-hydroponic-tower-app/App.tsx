@@ -17,6 +17,7 @@ import {StatusIndicator} from './src/components/StatusIndicator';
 import {DashboardScreen} from './src/screens/DashboardScreen';
 import {PlottingScreen} from './src/screens/PlottingScreen';
 import {SettingsScreen} from './src/screens/SettingsScreen';
+import {API_CONFIG, getApiUrl, getCommonFetchOptions} from './src/utils/apiConfig';
 
 function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -41,16 +42,13 @@ function App(): JSX.Element {
     try {
       // Create a timeout promise
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 8000)
+        setTimeout(() => reject(new Error('Request timeout')), API_CONFIG.TIMEOUT)
       );
       
-      const fetchPromise = fetch('http://10.65.171.23/sensors', { //change this line for different networks
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
+      const fetchPromise = fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.SENSORS),
+        getCommonFetchOptions('GET')
+      );
       
       const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
       
@@ -94,7 +92,7 @@ function App(): JSX.Element {
       console.error('Error details:', errorDetails);
       
       // Show detailed error in console for debugging
-      const errorMsg = `Failed to connect to ESP32 at 10.70.134.23/sensors\n\nError: ${errorDetails.message}\nType: ${errorDetails.type}`;
+      const errorMsg = `Failed to connect to ESP32 at ${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SENSORS}\n\nError: ${errorDetails.message}\nType: ${errorDetails.type}`;
       console.log('DETAILED ERROR:', errorMsg);
       
       setConnectionError(true);
@@ -105,13 +103,10 @@ function App(): JSX.Element {
   // Function to toggle pump state
   const togglePump = async () => {
     try {
-      const response = await fetch('http://10.65.171.23/pump/toggle', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PUMP_TOGGLE),
+        getCommonFetchOptions('POST')
+      );
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
