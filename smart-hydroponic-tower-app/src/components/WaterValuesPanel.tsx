@@ -50,7 +50,7 @@ export const WaterValuesPanel: React.FC<WaterValuesPanelProps> = ({
     <View style={styles.gridContainer}>
       <View style={styles.gridRow}>
         <View style={styles.gridItem}>
-          <Text style={styles.gridLabel}>PH:</Text>
+          <Text style={styles.gridLabel}>pH:</Text>
           <Text style={[styles.gridValue, {color: getStatusColor(phStatus)}]}>
             {sensorData.waterPH}
           </Text>

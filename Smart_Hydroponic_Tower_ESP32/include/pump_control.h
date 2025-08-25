@@ -29,4 +29,11 @@ PumpConfig getPumpConfig();
 unsigned long getPumpCycleTimeRemaining();
 String getPumpStatusString();
 
+// pH Control Functions
+void updatePHControl();
+String getPHControlStatus();
+void activatePHUp();          // Manual permanent activation
+void activatePHDown();        // Manual permanent activation
+void stopPHPumps();
+
 #endif

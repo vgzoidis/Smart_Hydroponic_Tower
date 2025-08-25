@@ -18,6 +18,7 @@ void IRAM_ATTR onTimer() {
 void handleSystemUpdate() {
   updateSensorValues(); // Update sensor values
   updatePumpControl();  // Update pump control
+  updatePHControl();    // Update pH control
   drawSensorStatus(); // Redraw sensor status with updated values
   updatePreviousValues(); // Update previous values for next clearing cycle
 }
@@ -43,7 +44,8 @@ void loop() {
     readSensors = false; // Reset the flag
     handleSystemUpdate();
   }
-  
+
+
   // Handle any additional web server tasks if needed
   handleWebServer();
 

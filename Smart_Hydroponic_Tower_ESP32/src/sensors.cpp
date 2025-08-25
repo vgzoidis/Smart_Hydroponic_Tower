@@ -15,7 +15,14 @@
 #define waterECPin 34    // GPIO pin for EC meter Analog output
 #define DHTPIN 4         // GPIO pin for DHT22 sensor
 
-#define phOffset -1.3    // ph sensor deviation compensate
+#define phOffset 0.6    // ph sensor deviation compensate
+
+// Moving average parameters for pH sensor
+#define PH_SAMPLES 10    // Number of samples to average (adjust as needed)
+float phReadings[PH_SAMPLES];  // Array to store pH readings
+int phIndex = 0;              // Current index in the array
+float phSum = 0.0;            // Sum of all readings
+bool phBufferFilled = false;  // Flag to check if buffer is full
 
 #define DHTTYPE DHT22 
 DHT dht(DHTPIN, DHTTYPE); // Initialize DHT sensor.
@@ -62,6 +69,14 @@ void initSensors() {
   // Initialize sensor pins
   pinMode(waterLevelPin, INPUT);
 
+  // Initialize pH moving average buffer
+  for (int i = 0; i < PH_SAMPLES; i++) {
+    phReadings[i] = 0.0;
+  }
+  phIndex = 0;
+  phSum = 0.0;
+  phBufferFilled = false;
+
   dht.begin(); // Initialize the DHT22 sensor
   sensors.begin(); // Initialize the DS18B20 sensor
 
@@ -77,10 +92,33 @@ void initSensors() {
   //Serial.println("Sensors initialized");
 }
 
+// Function to calculate moving average for pH
+float calculatePHMovingAverage(float newReading) {
+  // Remove the oldest reading from the sum
+  phSum -= phReadings[phIndex];
+  
+  // Add the new reading
+  phReadings[phIndex] = newReading;
+  phSum += newReading;
+  
+  // Move to the next index (circular buffer)
+  phIndex = (phIndex + 1) % PH_SAMPLES;
+  
+  // Check if we've filled the buffer at least once
+  if (!phBufferFilled && phIndex == 0) {
+    phBufferFilled = true;
+  }
+  
+  // Calculate and return the average
+  int samplesCount = phBufferFilled ? PH_SAMPLES : phIndex;
+  return samplesCount > 0 ? phSum / samplesCount : newReading;
+}
+
 void updateSensorValues() {
   currentSensors.waterLevel = !digitalRead(waterLevelPin); // The water level  sensor reads LOW when water is present and HIGH there isn't
   currentSensors.co2Level = myMHZ19.getCO2(); // Request CO2 (as ppm)
-  currentSensors.waterPH = 3.5*(analogRead(waterPHPin)*5*1.5/4096)+phOffset; // Convert the analog value to pH (*1.5 because of the voltage divider)
+  float rawPH = 3.5*(analogRead(waterPHPin)*5/4096.0)+phOffset; // Read raw pH value
+  currentSensors.waterPH = calculatePHMovingAverage(rawPH); // apply moving average
   sensors.requestTemperatures(); // Request temperature from DS18B20 water temperature sensor
   currentSensors.waterTemp = sensors.getTempCByIndex(0); // water temperature in Celsius
   currentSensors.waterEC = ec.readEC(analogRead(waterECPin), currentSensors.waterTemp); // Read EC value from the sensor

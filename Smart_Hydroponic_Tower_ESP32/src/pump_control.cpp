@@ -17,6 +17,23 @@ PumpConfig pumpConfig = {
 #define PUMP_PWM_RES 8
 #define PUMP_PWM_ON_DUTY ((int)(0.4 * 255)) // 40% duty cycle
 
+// pH Control Parameters
+#define PH_TARGET 6.0        // Target pH value
+#define PH_TOLERANCE 0.5     // Acceptable range around target (±0.5)
+#define PH_DEADBAND 0.2      // Dead band to prevent oscillation
+#define PH_PUMP_ON_TIME 5000 // pH pump on time in milliseconds (5 seconds)
+#define PH_PUMP_COOLDOWN 60000 // Cooldown between pH adjustments (60 seconds)
+
+// pH Control Variables
+bool phUpActive = false;
+bool phDownActive = false;
+bool phUpManualMode = false;    // Track if pH UP is in manual mode
+bool phDownManualMode = false;  // Track if pH DOWN is in manual mode
+unsigned long phUpLastActivation = 0;
+unsigned long phDownLastActivation = 0;
+unsigned long phUpStartTime = 0;
+unsigned long phDownStartTime = 0;
+
 void initPump() {
   ledcSetup(PUMP_PWM_CHANNEL, PUMP_PWM_FREQ, PUMP_PWM_RES);
   ledcAttachPin(waterPumpPin, PUMP_PWM_CHANNEL);
@@ -26,10 +43,10 @@ void initPump() {
   Serial.println("Pump initialized on pin " + String(waterPumpPin));
   Serial.printf("Auto cycle: %ds ON, %ds OFF\n", pumpConfig.onTime/1000, pumpConfig.offTime/1000);
 
-  pinMode(18, OUTPUT); // Initialize phUpPumpPin as output
-  pinMode(19, OUTPUT); // Initialize phDownPumpPin as output
-  digitalWrite(18,1);
-  digitalWrite(19,1);
+  pinMode(phUpPumpPin, OUTPUT); // Initialize phUpPumpPin as output
+  pinMode(phDownPumpPin, OUTPUT); // Initialize phDownPumpPin as output
+  digitalWrite(phUpPumpPin, LOW);
+  digitalWrite(phDownPumpPin, LOW);
 }
 
 void updatePumpControl() {
@@ -156,4 +173,133 @@ String getPumpStatusString() {
            + "s until turning " + (pumpState ? "off)" : "on)");
   }
   return status;
+}
+
+// pH Control Functions
+void updatePHControl() {
+  unsigned long currentTime = millis();
+  
+  // Only turn off pumps automatically if they're not in manual mode
+  if (phUpActive && !phUpManualMode && (currentTime - phUpStartTime >= PH_PUMP_ON_TIME)) {
+    digitalWrite(phUpPumpPin, LOW);
+    phUpActive = false;
+    phUpLastActivation = currentTime;
+    Serial.println("pH UP pump turned OFF (auto)");
+  }
+  
+  if (phDownActive && !phDownManualMode && (currentTime - phDownStartTime >= PH_PUMP_ON_TIME)) {
+    digitalWrite(phDownPumpPin, LOW);
+    phDownActive = false;
+    phDownLastActivation = currentTime;
+    Serial.println("pH DOWN pump turned OFF (auto)");
+  }
+  
+  // Skip automatic pH control if either pump is in manual mode
+  if (phUpManualMode || phDownManualMode) {
+    return;
+  }
+  
+  // Get current pH reading
+  extern SensorData currentSensors;
+  float currentPH = currentSensors.waterPH;
+  
+  // Skip pH control if reading is invalid
+  if (currentPH <= 0 || currentPH > 14) {
+    return;
+  }
+  
+  // Calculate pH difference from target
+  float phDifference = currentPH - PH_TARGET;
+  
+  // Check if pH is outside acceptable range and cooldown has passed
+  if (abs(phDifference) > PH_TOLERANCE) {
+    
+    // pH is too high - need to lower it
+    if (phDifference > PH_DEADBAND && !phDownActive && !phUpActive) {
+      if (currentTime - phDownLastActivation >= PH_PUMP_COOLDOWN) {
+        digitalWrite(phDownPumpPin, HIGH);
+        phDownActive = true;
+        phDownStartTime = currentTime;
+        Serial.printf("pH too high (%.2f) - activating pH DOWN pump\n", currentPH);
+      }
+    }
+    // pH is too low - need to raise it  
+    else if (phDifference < -PH_DEADBAND && !phUpActive && !phDownActive) {
+      if (currentTime - phUpLastActivation >= PH_PUMP_COOLDOWN) {
+        digitalWrite(phUpPumpPin, HIGH);
+        phUpActive = true;
+        phUpStartTime = currentTime;
+        Serial.printf("pH too low (%.2f) - activating pH UP pump\n", currentPH);
+      }
+    }
+  }
+}
+
+// Get pH control status
+String getPHControlStatus() {
+  String status = "pH Control: ";
+  
+  extern SensorData currentSensors;
+  float currentPH = currentSensors.waterPH;
+  
+  status += "Current=" + String(currentPH, 2) + " ";
+  status += "Target=" + String(PH_TARGET, 1) + " ";
+  
+  if (phUpActive) {
+    status += phUpManualMode ? "[pH UP MANUAL]" : "[pH UP AUTO]";
+  } else if (phDownActive) {
+    status += phDownManualMode ? "[pH DOWN MANUAL]" : "[pH DOWN AUTO]"; 
+  } else {
+    float phDifference = currentPH - PH_TARGET;
+    if (abs(phDifference) <= PH_TOLERANCE) {
+      status += "[IN RANGE]";
+    } else {
+      status += "[WAITING]";
+    }
+  }
+  
+  return status;
+}
+
+// Manual pH control functions - permanent activation until manually stopped
+void activatePHUp() {
+  if (!phDownActive) {  // Prevent simultaneous operation
+    digitalWrite(phUpPumpPin, HIGH);
+    phUpActive = true;
+    phUpManualMode = true;  // Set manual mode
+    phUpStartTime = millis();
+    Serial.println("Manual pH UP pump activated (permanent until stopped)");
+  } else {
+    Serial.println("Cannot activate pH UP - pH DOWN pump is active");
+  }
+}
+
+void activatePHDown() {
+  if (!phUpActive) {  // Prevent simultaneous operation
+    digitalWrite(phDownPumpPin, HIGH);
+    phDownActive = true;
+    phDownManualMode = true;  // Set manual mode
+    phDownStartTime = millis();
+    Serial.println("Manual pH DOWN pump activated (permanent until stopped)");
+  } else {
+    Serial.println("Cannot activate pH DOWN - pH UP pump is active");
+  }
+}
+
+void stopPHPumps() {
+  if (phUpActive) {
+    digitalWrite(phUpPumpPin, LOW);
+    phUpActive = false;
+    phUpManualMode = false;  // Clear manual mode
+    phUpLastActivation = millis();
+    Serial.println("pH UP pump stopped manually");
+  }
+  
+  if (phDownActive) {
+    digitalWrite(phDownPumpPin, LOW);
+    phDownActive = false;
+    phDownManualMode = false;  // Clear manual mode
+    phDownLastActivation = millis();
+    Serial.println("pH DOWN pump stopped manually");
+  }
 }

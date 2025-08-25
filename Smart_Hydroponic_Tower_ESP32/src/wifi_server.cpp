@@ -4,15 +4,15 @@
 #include "pump_control.h"
 
 // WiFi credentials - UPDATE THESE FOR DIFFERENT NETWORKS!
-const char* ssid = "Xperia 10 II_5346";
-const char* password = "e741ae2843e5";
+const char* ssid = "WLAN-ITI4";
+const char* password = "Iti.Wireless3";
 
 // Static IP configuration (change if setting up on a new network except last octet of static IP)
-IPAddress staticIP(10, 65, 171, 23); // ESP32 static IP
-IPAddress gateway(10, 65, 171, 1);    // IP Address of your network gateway (router)
-IPAddress subnet(255, 255, 255, 0);   // Subnet mask
-IPAddress primaryDNS(10, 65, 171, 1); // Primary DNS (optional)
-IPAddress secondaryDNS(0, 0, 0, 0);   // Secondary DNS (optional)
+IPAddress staticIP(160, 40, 48, 23); // ESP32 static IP
+IPAddress gateway(160, 40, 50, 1);    // IP Address of your network gateway (router)
+IPAddress subnet(255, 255, 248, 0);   // Subnet mask
+IPAddress primaryDNS(160, 40, 50, 4); // Primary DNS (optional)
+IPAddress secondaryDNS(160, 40, 50, 1);   // Secondary DNS (optional)
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -149,11 +149,51 @@ void initWiFi() {
     request->send(response);
   });
 
+  // PH CONTROL ROUTES
+  // GET pH control status
+  server.on("/ph/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    String statusText = getPHControlStatus();
+    String json = "{\"status\":\"" + statusText + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // POST to manually activate pH UP pump
+  server.on("/ph/up", HTTP_POST, [](AsyncWebServerRequest *request){
+    activatePHUp();
+    String json = "{\"message\":\"pH UP pump activated\",\"status\":\"" + getPHControlStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // POST to manually activate pH DOWN pump
+  server.on("/ph/down", HTTP_POST, [](AsyncWebServerRequest *request){
+    activatePHDown();
+    String json = "{\"message\":\"pH DOWN pump activated\",\"status\":\"" + getPHControlStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // POST to stop pH pumps
+  server.on("/ph/stop", HTTP_POST, [](AsyncWebServerRequest *request){
+    stopPHPumps();
+    String json = "{\"message\":\"pH pumps stopped\",\"status\":\"" + getPHControlStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
   // Handle OPTIONS for CORS
   server.on("/pump/toggle", HTTP_OPTIONS, handleCORSOptions);
   server.on("/pump/state", HTTP_OPTIONS, handleCORSOptions);
   server.on("/pump/config", HTTP_OPTIONS, handleCORSOptions);
   server.on("/pump/status", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/ph/up", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/ph/down", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/ph/stop", HTTP_OPTIONS, handleCORSOptions);
   
   // Handle preflight OPTIONS requests
   server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request){

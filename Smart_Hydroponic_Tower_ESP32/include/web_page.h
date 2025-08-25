@@ -15,6 +15,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         .value{font-weight:bold;color:#2196F3;}
         h1{color:#333;text-align:center;}
         .pump-section{margin-top:30px;padding:20px;background:#e3f7e3;border-radius:10px;}
+        .ph-section{margin-top:30px;padding:20px;background:#ffe3e3;border-radius:10px;}
         .api-result{margin-top:10px;color:#444;font-size:0.95em;}
         .btn{padding:8px 16px;margin:5px;font-size:1em;border-radius:5px;border:none;background:#2196F3;color:white;cursor:pointer;}
         .btn:disabled{background:#aaa;}
@@ -60,6 +61,14 @@ const char index_html[] PROGMEM = R"rawliteral(
                 </select>
             </div>
             <div class='api-result' id='apiResult'></div>
+        </div>
+        <div class='ph-section'>
+            <h2>⚗️ pH Control</h2>
+            <div class='sensor'>pH Status: <span class='value' id='phStatus'>Loading...</span></div>
+            <button class='btn' onclick='activatePHUp()'>pH UP</button>
+            <button class='btn' onclick='activatePHDown()'>pH DOWN</button>
+            <button class='btn' onclick='stopPHPumps()'>Stop pH Pumps</button>
+            <div class='api-result' id='phApiResult'></div>
         </div>
         <p style='text-align:center;margin-top:20px;'><a href='/sensors'>📊 Raw JSON Data</a></p>
     </div>
@@ -155,10 +164,58 @@ const char index_html[] PROGMEM = R"rawliteral(
                 .catch(() => showApiResult('Failed to set auto mode', true));
         }
 
+        // pH Control Functions
+        function updatePHStatus() {
+            fetch('/ph/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('phStatus').textContent = data.status;
+                })
+                .catch(() => document.getElementById('phStatus').textContent = 'Error');
+        }
+
+        function showPHApiResult(msg, isError) {
+            var el = document.getElementById('phApiResult');
+            el.textContent = msg;
+            el.style.color = isError ? 'red' : 'green';
+        }
+
+        function activatePHUp() {
+            fetch('/ph/up', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    updatePHStatus();
+                    showPHApiResult(data.message, false);
+                })
+                .catch(() => showPHApiResult('Failed to activate pH UP pump', true));
+        }
+
+        function activatePHDown() {
+            fetch('/ph/down', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    updatePHStatus();
+                    showPHApiResult(data.message, false);
+                })
+                .catch(() => showPHApiResult('Failed to activate pH DOWN pump', true));
+        }
+
+        function stopPHPumps() {
+            fetch('/ph/stop', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    updatePHStatus();
+                    showPHApiResult(data.message, false);
+                })
+                .catch(() => showPHApiResult('Failed to stop pH pumps', true));
+        }
+
         setInterval(updateSensors, 1000);
         setInterval(updatePumpStatus, 1000);
+        setInterval(updatePHStatus, 1000);  // Update pH status every 1 second
         updateSensors();
         updatePumpStatus();
+        updatePHStatus();
     </script>
 </body>
 </html>
