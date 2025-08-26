@@ -16,6 +16,13 @@ struct PumpConfig {
   bool manualOverride;      // Manual override active
 };
 
+// pH Configuration structure
+struct PHConfig {
+  float target;           // Target pH value
+  float tolerance;        // Acceptable range around target
+  bool autoMode;          // Auto pH control enabled/disabled (manual when false)
+};
+
 // Function declarations
 void initPump();
 void updatePumpControl();
@@ -32,8 +39,13 @@ String getPumpStatusString();
 // pH Control Functions
 void updatePHControl();
 String getPHControlStatus();
-void activatePHUp();          // Manual permanent activation
-void activatePHDown();        // Manual permanent activation
-void stopPHPumps();
+void togglePHUp();               // Toggle pH UP pump (manual mode)
+void togglePHDown();             // Toggle pH DOWN pump (manual mode)
+void stopPHPumps();              // Stop all pH pumps (manual mode)
+void enablePHAutoMode(bool enable);  // Enable/disable pH auto mode
+void setPHTarget(float target, float tolerance);  // Set pH target and tolerance
+PHConfig getPHConfig();          // Get pH configuration
+bool getPHUpState();            // Get pH UP pump state
+bool getPHDownState();          // Get pH DOWN pump state
 
 #endif

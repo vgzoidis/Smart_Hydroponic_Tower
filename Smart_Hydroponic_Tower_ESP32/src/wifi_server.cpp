@@ -150,37 +150,70 @@ void initWiFi() {
   });
 
   // PH CONTROL ROUTES
-  // GET pH control status
+  // GET pH control status and configuration
   server.on("/ph/status", HTTP_GET, [](AsyncWebServerRequest *request){
-    String statusText = getPHControlStatus();
-    String json = "{\"status\":\"" + statusText + "\"}";
+    PHConfig config = getPHConfig();
+    String json = "{\"phStatus\":" + String(getPHUpState() ? "true" : "false") + 
+                  ",\"phDownStatus\":" + String(getPHDownState() ? "true" : "false") +
+                  ",\"statusText\":\"" + getPHControlStatus() + "\"" +
+                  ",\"autoMode\":" + String(config.autoMode ? "true" : "false") +
+                  ",\"target\":" + String(config.target, 1) +
+                  ",\"tolerance\":" + String(config.tolerance, 1) + "}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
 
-  // POST to manually activate pH UP pump
+  // POST to toggle pH UP pump (manual mode)
   server.on("/ph/up", HTTP_POST, [](AsyncWebServerRequest *request){
-    activatePHUp();
-    String json = "{\"message\":\"pH UP pump activated\",\"status\":\"" + getPHControlStatus() + "\"}";
+    togglePHUp();
+    String json = "{\"message\":\"pH UP pump toggled\",\"phUpStatus\":" + String(getPHUpState() ? "true" : "false") + 
+                  ",\"status\":\"" + getPHControlStatus() + "\"}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
 
-  // POST to manually activate pH DOWN pump
+  // POST to toggle pH DOWN pump (manual mode)
   server.on("/ph/down", HTTP_POST, [](AsyncWebServerRequest *request){
-    activatePHDown();
-    String json = "{\"message\":\"pH DOWN pump activated\",\"status\":\"" + getPHControlStatus() + "\"}";
+    togglePHDown();
+    String json = "{\"message\":\"pH DOWN pump toggled\",\"phDownStatus\":" + String(getPHDownState() ? "true" : "false") + 
+                  ",\"status\":\"" + getPHControlStatus() + "\"}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
 
-  // POST to stop pH pumps
+  // POST to stop pH pumps (manual mode)
   server.on("/ph/stop", HTTP_POST, [](AsyncWebServerRequest *request){
     stopPHPumps();
     String json = "{\"message\":\"pH pumps stopped\",\"status\":\"" + getPHControlStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // PUT for updating pH configuration
+  server.on("/ph/config", HTTP_PUT, [](AsyncWebServerRequest *request){
+    // Handle auto mode
+    if (request->hasParam("autoMode")) {
+      bool enable = request->getParam("autoMode")->value() == "true";
+      enablePHAutoMode(enable);
+    }
+    
+    // Handle target and tolerance
+    if (request->hasParam("target") && request->hasParam("tolerance")) {
+      float target = request->getParam("target")->value().toFloat();
+      float tolerance = request->getParam("tolerance")->value().toFloat();
+      setPHTarget(target, tolerance);
+      enablePHAutoMode(true);  // Enable auto mode when updating configuration
+    }
+    
+    PHConfig config = getPHConfig();
+    String json = "{\"autoMode\":" + String(config.autoMode ? "true" : "false") + 
+                  ",\"target\":" + String(config.target, 1) + 
+                  ",\"tolerance\":" + String(config.tolerance, 1) + 
+                  ",\"message\":\"pH configuration updated\"}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
@@ -194,6 +227,7 @@ void initWiFi() {
   server.on("/ph/up", HTTP_OPTIONS, handleCORSOptions);
   server.on("/ph/down", HTTP_OPTIONS, handleCORSOptions);
   server.on("/ph/stop", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/ph/config", HTTP_OPTIONS, handleCORSOptions);
   
   // Handle preflight OPTIONS requests
   server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request){

@@ -38,11 +38,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         </div>
         <div class='pump-section'>
             <h2>🚰 Pump Control</h2>
-            <div class='sensor'>Status: <span class='value' id='pumpStatus'>Loading...</span></div>
-            <div class='sensor'>Mode: <span class='value' id='pumpMode'>Loading...</span></div>
+            <div class='sensor'>Status: <span class='value' id='pumpStatusText'>Loading...</span></div>
             <div class='sensor'>On Time: <span class='value' id='pumpOnTime'>Loading...</span></div>
             <div class='sensor'>Off Time: <span class='value' id='pumpOffTime'>Loading...</span></div>
-            <div class='sensor'>Status Text: <span class='value' id='pumpStatusText'>Loading...</span></div>
             <button class='btn' id='toggleBtn' onclick='togglePump()'>Toggle Pump</button>
             <button class='btn' onclick='setPumpState(true)'>Set ON</button>
             <button class='btn' onclick='setPumpState(false)'>Set OFF</button>
@@ -64,10 +62,26 @@ const char index_html[] PROGMEM = R"rawliteral(
         </div>
         <div class='ph-section'>
             <h2>⚗️ pH Control</h2>
-            <div class='sensor'>pH Status: <span class='value' id='phStatus'>Loading...</span></div>
-            <button class='btn' onclick='activatePHUp()'>pH UP</button>
-            <button class='btn' onclick='activatePHDown()'>pH DOWN</button>
+            <div class='sensor'>Status: <span class='value' id='phStatusText'>Loading...</span></div>
+            <div class='sensor'>Target: <span class='value' id='phTarget'>Loading...</span></div>
+            <div class='sensor'>Tolerance: <span class='value' id='phTolerance'>Loading...</span></div>
+            <button class='btn' id='phUpBtn' onclick='togglePHUp()'>pH Up</button>
+            <button class='btn' id='phDownBtn' onclick='togglePHDown()'>pH Down</button>
             <button class='btn' onclick='stopPHPumps()'>Stop pH Pumps</button>
+            <div class='input-group'>
+                <label for='phTargetInput'>Target pH:</label>
+                <input type='number' id='phTargetInput' min='5.0' max='8.0' step='0.1' value='6.0' style='width:60px;'>
+                <label for='phToleranceInput'>Tolerance:</label>
+                <input type='number' id='phToleranceInput' min='0.1' max='1.0' step='0.1' value='0.5' style='width:60px;'>
+                <button class='btn' onclick='updatePHControl()'>Update pH Control</button>
+            </div>
+            <div class='input-group'>
+                <label for='phAutoMode'>Auto Mode:</label>
+                <select id='phAutoMode' onchange='setPHAutoMode()'>
+                    <option value='true'>Enabled</option>
+                    <option value='false'>Disabled</option>
+                </select>
+            </div>
             <div class='api-result' id='phApiResult'></div>
         </div>
         <p style='text-align:center;margin-top:20px;'><a href='/sensors'>📊 Raw JSON Data</a></p>
@@ -92,16 +106,15 @@ const char index_html[] PROGMEM = R"rawliteral(
             fetch('/pump/status')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('pumpStatus').textContent = data.pumpStatus  ? 'ON'  : 'OFF';
-                    document.getElementById('pumpMode').textContent = data.autoMode ? 'Auto' : 'Manual';
+                    // Show status text in the main status field
+                    let statusText = data.statusText;
+                    document.getElementById('pumpStatusText').textContent = statusText;
+                    
                     // Show On Time and Off Time in minutes, reflecting input
                     document.getElementById('pumpOnTime').textContent  =
                         data.onTime  ? data.onTime  + ' min' : 'N/A';
                     document.getElementById('pumpOffTime').textContent =
                         data.offTime ? data.offTime + ' min' : 'N/A';
-                    // Convert time remaining in statusText from ms to min if present
-                    let statusText = data.statusText;
-                    document.getElementById('pumpStatusText').textContent = statusText;
                     document.getElementById('autoMode').value            = data.autoMode   ? 'true' : 'false';
              });
         }
@@ -169,9 +182,18 @@ const char index_html[] PROGMEM = R"rawliteral(
             fetch('/ph/status')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('phStatus').textContent = data.status;
+                    document.getElementById('phStatusText').textContent = data.statusText;
+                    document.getElementById('phTarget').textContent = data.target;
+                    document.getElementById('phTolerance').textContent = '±' + data.tolerance;
+                    document.getElementById('phAutoMode').value = data.autoMode ? 'true' : 'false';
+                    
+                    // Update button styles based on pump status
+                    document.getElementById('phUpBtn').textContent = data.phStatus ? 'pH Up (ON)' : 'pH Up (OFF)';
+                    document.getElementById('phDownBtn').textContent = data.phDownStatus ? 'pH Down (ON)' : 'pH Down (OFF)';
                 })
-                .catch(() => document.getElementById('phStatus').textContent = 'Error');
+                .catch(() => {
+                    document.getElementById('phStatusText').textContent = 'Error';
+                });
         }
 
         function showPHApiResult(msg, isError) {
@@ -180,24 +202,24 @@ const char index_html[] PROGMEM = R"rawliteral(
             el.style.color = isError ? 'red' : 'green';
         }
 
-        function activatePHUp() {
+        function togglePHUp() {
             fetch('/ph/up', {method: 'POST'})
                 .then(response => response.json())
                 .then(data => {
                     updatePHStatus();
                     showPHApiResult(data.message, false);
                 })
-                .catch(() => showPHApiResult('Failed to activate pH UP pump', true));
+                .catch(() => showPHApiResult('Failed to toggle pH UP pump', true));
         }
 
-        function activatePHDown() {
+        function togglePHDown() {
             fetch('/ph/down', {method: 'POST'})
                 .then(response => response.json())
                 .then(data => {
                     updatePHStatus();
                     showPHApiResult(data.message, false);
                 })
-                .catch(() => showPHApiResult('Failed to activate pH DOWN pump', true));
+                .catch(() => showPHApiResult('Failed to toggle pH DOWN pump', true));
         }
 
         function stopPHPumps() {
@@ -210,9 +232,32 @@ const char index_html[] PROGMEM = R"rawliteral(
                 .catch(() => showPHApiResult('Failed to stop pH pumps', true));
         }
 
+        function updatePHControl() {
+            var target = document.getElementById('phTargetInput').value;
+            var tolerance = document.getElementById('phToleranceInput').value;
+            fetch('/ph/config?target=' + target + '&tolerance=' + tolerance, {method: 'PUT'})
+                .then(response => response.json())
+                .then(data => {
+                    updatePHStatus();
+                    showPHApiResult('pH control updated: Target=' + target + ', Tolerance=±' + tolerance, false);
+                })
+                .catch(() => showPHApiResult('Failed to update pH control', true));
+        }
+
+        function setPHAutoMode() {
+            var mode = document.getElementById('phAutoMode').value;
+            fetch('/ph/config?autoMode=' + mode, {method: 'PUT'})
+                .then(response => response.json())
+                .then(data => {
+                    updatePHStatus();
+                    showPHApiResult('pH Auto mode set to ' + (mode === 'true' ? 'Enabled' : 'Disabled'), false);
+                })
+                .catch(() => showPHApiResult('Failed to set pH auto mode', true));
+        }
+
         setInterval(updateSensors, 1000);
         setInterval(updatePumpStatus, 1000);
-        setInterval(updatePHStatus, 1000);  // Update pH status every 1 second
+        setInterval(updatePHStatus, 1000);  // Update pH status every 1 seconds
         updateSensors();
         updatePumpStatus();
         updatePHStatus();
