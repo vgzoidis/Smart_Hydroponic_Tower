@@ -13,7 +13,6 @@ struct PumpConfig {
   unsigned long onTime;     // Time pump stays on (milliseconds)
   unsigned long offTime;    // Time pump stays off (milliseconds)
   bool autoMode;            // Auto cycling mode enabled/disabled
-  bool manualOverride;      // Manual override active
 };
 
 // pH Configuration structure
@@ -31,7 +30,6 @@ void togglePump();
 bool getPumpState();
 void setPumpTiming(int onSeconds, int offSeconds);
 void enableAutoMode(bool enable);
-void setManualOverride(bool override);
 PumpConfig getPumpConfig();
 unsigned long getPumpCycleTimeRemaining();
 String getPumpStatusString();

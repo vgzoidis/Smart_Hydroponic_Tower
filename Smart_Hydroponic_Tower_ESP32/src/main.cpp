@@ -3,6 +3,7 @@
 #include "sensors.h"
 #include "wifi_server.h"
 #include "pump_control.h"
+#include "data_logger.h"
 
 #define measureInterval 1000000 //1 second (1,000,000 microseconds)
 
@@ -30,6 +31,7 @@ void setup() {
   initSensors(); // Initialize sensors
   initPump();    // Initialize pump control
   initWiFi(); // Initialize WiFi and web server
+  initDataLogger(); // Initialize simple data logging
 
   // Initialize timer (Timer 0, divider 80, count up)
   timer = timerBegin(0, 80, true); // ESP32 clock is 80MHz, so: 80MHz/80 = 1MHz = 1μs per tick
@@ -45,6 +47,8 @@ void loop() {
     handleSystemUpdate();
   }
 
+  // Handle data logging (checks timer internally)
+  logSensorDataToCloud();
 
   // Handle any additional web server tasks if needed
   handleWebServer();

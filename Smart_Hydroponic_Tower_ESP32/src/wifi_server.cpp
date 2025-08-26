@@ -2,6 +2,7 @@
 #include "sensors.h"
 #include "web_page.h"
 #include "pump_control.h"
+#include "data_logger.h"
 
 // WiFi credentials - UPDATE THESE FOR DIFFERENT NETWORKS!
 const char* ssid = "WLAN-ITI4";
@@ -219,6 +220,84 @@ void initWiFi() {
     request->send(response);
   });
 
+  // Simple Data Logging Endpoints
+  
+  // Get logging status
+  server.on("/logger/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    String json = "{\"enabled\":" + String(isDataLoggerEnabled() ? "true" : "false") + 
+                  ",\"status\":\"" + getLoggerStatus() + "\"" +
+                  ",\"failedUploads\":" + String(getFailedUploadCount()) + "}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Toggle logger on/off
+  server.on("/logger/toggle", HTTP_POST, [](AsyncWebServerRequest *request){
+    enableDataLogger(!isDataLoggerEnabled());
+    String json = "{\"enabled\":" + String(isDataLoggerEnabled() ? "true" : "false") + 
+                  ",\"message\":\"Logger " + String(isDataLoggerEnabled() ? "enabled" : "disabled") + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Manual log trigger
+  server.on("/logger/log", HTTP_POST, [](AsyncWebServerRequest *request){
+    triggerManualLog();
+    String json = "{\"message\":\"Manual log triggered\",\"status\":\"" + getLoggerStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // API-style Data Logging Endpoints (for web interface compatibility)
+  
+  // Get logging status - /api/log/status
+  server.on("/api/log/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    String json = "{\"enabled\":" + String(isDataLoggerEnabled() ? "true" : "false") + 
+                  ",\"lastStatus\":\"" + getLoggerStatus() + "\"" +
+                  ",\"failedUploads\":" + String(getFailedUploadCount()) + "}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Enable/disable logger - /api/log/enable?enabled=true/false
+  server.on("/api/log/enable", HTTP_PUT, [](AsyncWebServerRequest *request){
+    bool enable = false;
+    if (request->hasParam("enabled")) {
+      String enableParam = request->getParam("enabled")->value();
+      enable = (enableParam == "true");
+    }
+    enableDataLogger(enable);
+    String json = "{\"enabled\":" + String(isDataLoggerEnabled() ? "true" : "false") + 
+                  ",\"message\":\"Data logging " + String(isDataLoggerEnabled() ? "enabled" : "disabled") + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Manual log trigger - /api/log/trigger
+  server.on("/api/log/trigger", HTTP_POST, [](AsyncWebServerRequest *request){
+    triggerManualLog();
+    String json = "{\"message\":\"Manual upload triggered\",\"status\":\"" + getLoggerStatus() + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
+  // Connection test - /api/log/test
+  server.on("/api/log/test", HTTP_POST, [](AsyncWebServerRequest *request){
+    // Simple connection test - just check WiFi status
+    bool connected = (WiFi.status() == WL_CONNECTED);
+    String json = "{\"success\":" + String(connected ? "true" : "false") + 
+                  ",\"message\":\"" + String(connected ? "WiFi connected - ready to log" : "WiFi not connected") + "\"}";
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
+
   // Handle OPTIONS for CORS
   server.on("/pump/toggle", HTTP_OPTIONS, handleCORSOptions);
   server.on("/pump/state", HTTP_OPTIONS, handleCORSOptions);
@@ -228,6 +307,13 @@ void initWiFi() {
   server.on("/ph/down", HTTP_OPTIONS, handleCORSOptions);
   server.on("/ph/stop", HTTP_OPTIONS, handleCORSOptions);
   server.on("/ph/config", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/logger/status", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/logger/toggle", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/logger/log", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/api/log/status", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/api/log/enable", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/api/log/trigger", HTTP_OPTIONS, handleCORSOptions);
+  server.on("/api/log/test", HTTP_OPTIONS, handleCORSOptions);
   
   // Handle preflight OPTIONS requests
   server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request){

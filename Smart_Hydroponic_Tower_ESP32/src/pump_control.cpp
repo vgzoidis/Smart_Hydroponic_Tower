@@ -8,7 +8,6 @@ PumpConfig pumpConfig = {
   .onTime = 15*60000,      // 15 minutes on by default
   .offTime = 45*60000,     // 45 minutes off by default
   .autoMode = true,     // Auto mode enabled by default
-  .manualOverride = false
 };
 
 // PWM config for ESP32
@@ -55,8 +54,8 @@ void initPump() {
 }
 
 void updatePumpControl() {
-  // Only run auto control if auto mode is enabled and no manual override
-  if (!pumpConfig.autoMode || pumpConfig.manualOverride) {
+  // Only run auto control if auto mode is enabled
+  if (!pumpConfig.autoMode) {
     return;
   }
   
@@ -91,8 +90,7 @@ void setPumpState(bool state) {
   pumpLastChange = millis();
   currentSensors.pumpStatus = state;
   Serial.println(state ? "Manual: Pump turned ON (40%% speed)" : "Manual: Pump turned OFF");
-  // Enable manual override when manually controlling
-  pumpConfig.manualOverride = true;
+  pumpConfig.autoMode = false;
 }
 
 void togglePump() {
@@ -110,7 +108,7 @@ void setPumpTiming(int onMinutes, int offMinutes) {
     Serial.printf("Pump timing updated: ON=%dmin, OFF=%dmin\n", onMinutes, offMinutes);
     
     // Reset cycle if in auto mode
-    if (pumpConfig.autoMode && !pumpConfig.manualOverride) {
+    if (pumpConfig.autoMode) {
       pumpLastChange = millis();
     }
   }
@@ -119,21 +117,11 @@ void setPumpTiming(int onMinutes, int offMinutes) {
 void enableAutoMode(bool enable) {
   pumpConfig.autoMode = enable;
   if (enable) {
-    pumpConfig.manualOverride = false;
+    pumpConfig.autoMode = true;
     pumpLastChange = millis(); // Reset cycle timing
     Serial.println("Auto mode enabled");
   } else {
     Serial.println("Auto mode disabled");
-  }
-}
-
-void setManualOverride(bool override) {
-  pumpConfig.manualOverride = override;
-  if (!override && pumpConfig.autoMode) {
-    pumpLastChange = millis(); // Reset cycle timing when returning to auto
-    Serial.println("Manual override disabled - returning to auto mode");
-  } else if (override) {
-    Serial.println("Manual override enabled");
   }
 }
 
@@ -142,7 +130,7 @@ PumpConfig getPumpConfig() {
 }
 
 unsigned long getPumpCycleTimeRemaining() {
-  if (!pumpConfig.autoMode || pumpConfig.manualOverride) {
+  if (!pumpConfig.autoMode) {
     return 0;
   }
   
@@ -163,8 +151,8 @@ String getPumpStatusString() {
   String status = pumpState ? "ON" : "OFF";
 
   // if we’re not in pure auto mode, just show manual label
-  if (!pumpConfig.autoMode || pumpConfig.manualOverride) {
-    if (pumpConfig.manualOverride) status += " (Manual)";
+  if (!pumpConfig.autoMode) {
+    status += " (Manual)";
     return status;
   }
 

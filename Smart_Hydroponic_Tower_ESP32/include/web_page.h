@@ -46,9 +46,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             <button class='btn' onclick='setPumpState(false)'>Set OFF</button>
             <div class='input-group'>
                 <label for='onTime'>On Time (min):</label>
-                <input type='number' id='onTime' min='1' value='1' style='width:60px;'>
+                <input type='number' id='onTime' min='1' value='15' style='width:60px;'>
                 <label for='offTime'>Off Time (min):</label>
-                <input type='number' id='offTime' min='1' value='5' style='width:60px;'>
+                <input type='number' id='offTime' min='1' value='45' style='width:60px;'>
                 <button class='btn' onclick='updateSchedule()'>Update Schedule</button>
             </div>
             <div class='input-group'>
@@ -83,6 +83,17 @@ const char index_html[] PROGMEM = R"rawliteral(
                 </select>
             </div>
             <div class='api-result' id='phApiResult'></div>
+        </div>
+        <div class='pump-section' style='background:#e3f3ff;'>
+            <h2>📊 Data Logging</h2>
+            <div class='sensor'>Status: <span class='value' id='logStatus'>Loading...</span></div>
+            <div class='sensor'>Last Upload: <span class='value' id='lastUpload'>Loading...</span></div>
+            <div class='sensor'>Failed Uploads: <span class='value' id='failedUploads'>Loading...</span></div>
+            <div class='sensor'>Next Log: <span class='value' id='nextLog'>Loading...</span></div>
+            <button class='btn' id='logToggleBtn' onclick='toggleDataLogging()'>Toggle Logging</button>
+            <button class='btn' onclick='triggerManualLog()'>Manual Upload</button>
+            <button class='btn' onclick='testConnection()'>Test Connection</button>
+            <div class='api-result' id='logApiResult'></div>
         </div>
         <p style='text-align:center;margin-top:20px;'><a href='/sensors'>📊 Raw JSON Data</a></p>
     </div>
@@ -255,12 +266,82 @@ const char index_html[] PROGMEM = R"rawliteral(
                 .catch(() => showPHApiResult('Failed to set pH auto mode', true));
         }
 
+        // Data Logging Functions
+        function updateLogStatus() {
+            fetch('/api/log/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('logStatus').textContent = data.enabled ? 'Enabled' : 'Disabled';
+                    document.getElementById('lastUpload').textContent = data.lastStatus || 'Never';
+                    document.getElementById('failedUploads').textContent = data.failedUploads || '0';
+                    
+                    // Calculate next log time (approximate)
+                    if (data.enabled) {
+                        document.getElementById('nextLog').textContent = 'Within 5 minutes';
+                    } else {
+                        document.getElementById('nextLog').textContent = 'Disabled';
+                    }
+                    
+                    // Update button text
+                    document.getElementById('logToggleBtn').textContent = 
+                        data.enabled ? 'Disable Logging' : 'Enable Logging';
+                })
+                .catch(() => {
+                    document.getElementById('logStatus').textContent = 'Error';
+                });
+        }
+
+        function showLogApiResult(msg, isError) {
+            var el = document.getElementById('logApiResult');
+            el.textContent = msg;
+            el.style.color = isError ? 'red' : 'green';
+        }
+
+        function toggleDataLogging() {
+            // First get current status, then toggle
+            fetch('/api/log/status')
+                .then(response => response.json())
+                .then(data => {
+                    const newState = !data.enabled;
+                    return fetch('/api/log/enable?enabled=' + newState, {method: 'PUT'});
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateLogStatus();
+                    showLogApiResult('Data logging ' + (data.enabled ? 'enabled' : 'disabled'), false);
+                })
+                .catch(() => showLogApiResult('Failed to toggle data logging', true));
+        }
+
+        function triggerManualLog() {
+            showLogApiResult('Uploading sensor data...', false);
+            fetch('/api/log/trigger', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    updateLogStatus();
+                    showLogApiResult(data.message || 'Manual upload completed', false);
+                })
+                .catch(() => showLogApiResult('Failed to trigger manual upload', true));
+        }
+
+        function testConnection() {
+            showLogApiResult('Testing connection...', false);
+            fetch('/api/log/test', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    showLogApiResult(data.message || 'Connection test completed', data.success ? false : true);
+                })
+                .catch(() => showLogApiResult('Connection test failed', true));
+        }
+
         setInterval(updateSensors, 1000);
         setInterval(updatePumpStatus, 1000);
         setInterval(updatePHStatus, 1000);  // Update pH status every 1 seconds
+        setInterval(updateLogStatus, 5000);  // Update log status every 5 seconds
         updateSensors();
         updatePumpStatus();
         updatePHStatus();
+        updateLogStatus();
     </script>
 </body>
 </html>
