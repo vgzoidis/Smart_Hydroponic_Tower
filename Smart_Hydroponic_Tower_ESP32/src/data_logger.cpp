@@ -4,6 +4,7 @@
 static bool loggerEnabled = true;
 static unsigned long lastLogTime = 0;
 static int failedUploads = 0;
+static int successfulUploads = 0;
 static String lastStatus = "Ready";
 
 void initDataLogger() {
@@ -51,6 +52,7 @@ void logSensorDataToCloud() {
   if (uploadSensorData(currentSensors)) {
     Serial.println("✅ Data uploaded successfully!");
     lastStatus = "Upload Success";
+    successfulUploads++;
     failedUploads = 0; // Reset failed counter on success
   } else {
     failedUploads++;
@@ -136,6 +138,10 @@ String getLoggerStatus() {
 
 int getFailedUploadCount() {
   return failedUploads;
+}
+
+int getSuccessfulUploadCount() {
+  return successfulUploads;
 }
 
 // Manual logging function (for testing/immediate upload)

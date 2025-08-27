@@ -257,6 +257,7 @@ void initWiFi() {
   server.on("/api/log/status", HTTP_GET, [](AsyncWebServerRequest *request){
     String json = "{\"enabled\":" + String(isDataLoggerEnabled() ? "true" : "false") + 
                   ",\"lastStatus\":\"" + getLoggerStatus() + "\"" +
+                  ",\"successfulUploads\":" + String(getSuccessfulUploadCount()) +
                   ",\"failedUploads\":" + String(getFailedUploadCount()) + "}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
     response->addHeader("Access-Control-Allow-Origin", "*");

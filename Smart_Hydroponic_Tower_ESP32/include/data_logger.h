@@ -27,5 +27,6 @@ bool isDataLoggerEnabled();
 void enableDataLogger(bool enable);
 String getLoggerStatus();
 int getFailedUploadCount();
+int getSuccessfulUploadCount();
 
 #endif
