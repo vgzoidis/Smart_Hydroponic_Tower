@@ -313,20 +313,25 @@ const char index_html[] PROGMEM = R"rawliteral(
         
         .status-indicators {
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            gap: 12px;
             margin: 20px 0;
-            flex-wrap: wrap;
         }
         
         .status-indicator {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
+            padding: 15px;
             background: rgba(128, 128, 128, 0.15);
-            border-radius: 20px;
-            font-size: 0.9rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
             color: white;
+            transition: background-color 0.3s ease;
+        }
+        
+        .status-indicator:hover {
+            background: rgba(128, 128, 128, 0.25);
         }
         
         .status-indicator strong {
@@ -451,13 +456,16 @@ const char index_html[] PROGMEM = R"rawliteral(
                     </div>
                     <div class='status-indicators'>
                         <div class='status-indicator'>
-                            <span>Status: <strong id='pumpStatusText'>Loading...</strong></span>
+                            <span>Status:</span>
+                            <span><strong id='pumpStatusText'>Loading...</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>On Time: <strong id='pumpOnTime'>Loading...</strong></span>
+                            <span>On Time:</span>
+                            <span> <strong id='pumpOnTime'>Loading...</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>Off Time: <strong id='pumpOffTime'>Loading...</strong></span>
+                            <span>Off Time:</span>
+                            <span><strong id='pumpOffTime'>Loading...</strong></span>
                         </div>
                     </div>
                     
@@ -492,13 +500,16 @@ const char index_html[] PROGMEM = R"rawliteral(
                     </div>
                     <div class='status-indicators'>
                         <div class='status-indicator'>
-                            <span>Status: <strong id='phStatusText'>Loading...</strong></span>
+                            <span>Status:</span>
+                            <span><strong id='phStatusText'>Loading...</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>Target: <strong id='phTarget'>Loading...</strong></span>
+                            <span>Target:</span>
+                            <span><strong id='phTarget'>Loading...</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>Tolerance: <strong id='phTolerance'>Loading...</strong></span>
+                            <span>Tolerance:</span>
+                            <span><strong id='phTolerance'>Loading...</strong></span>
                         </div>
                     </div>
                     
@@ -540,13 +551,16 @@ const char index_html[] PROGMEM = R"rawliteral(
                     </div>
                     <div class='status-indicators'>
                         <div class='status-indicator'>
-                            <span>Status: <strong id='logStatus'>Loading...</strong></span>
+                            <span>Status:</span>
+                            <span><strong id='logStatus'>Loading...</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>Successful Uploads: <strong id='successfulUploads'>0</strong></span>
+                            <span>Successful Uploads:</span>
+                            <span><strong id='successfulUploads'>0</strong></span>
                         </div>
                         <div class='status-indicator'>
-                            <span>Failed Uploads: <strong id='failedUploads'>Loading...</strong></span>
+                            <span>Failed Uploads:</span>
+                            <span><strong id='failedUploads'>Loading...</strong></span>
                         </div>
                     </div>
                     
@@ -602,7 +616,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 .then(data => {
                     // Show status text in the main status field
                     let statusText = data.statusText;
-                    document.getElementById('pumpStatusText').textContent = statusText;
+                    document.getElementById('pumpStatusText').innerHTML = statusText;
                     
                     // Show On Time and Off Time in minutes, reflecting input
                     document.getElementById('pumpOnTime').textContent  =
@@ -673,7 +687,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             fetch('/ph/status')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('phStatusText').textContent = data.statusText;
+                    document.getElementById('phStatusText').innerHTML = data.statusText;
                     document.getElementById('phTarget').textContent = data.target;
                     document.getElementById('phTolerance').textContent = '±' + data.tolerance;
                     
@@ -683,7 +697,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                     updateToggle('phAutoModeToggle', null, data.autoMode);
                 })
                 .catch(() => {
-                    document.getElementById('phStatusText').textContent = 'Error';
+                    document.getElementById('phStatusText').innerHTML = 'Loading...';
                 });
         }
 

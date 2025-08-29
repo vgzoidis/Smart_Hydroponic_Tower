@@ -163,7 +163,7 @@ String getPumpStatusString() {
     unsigned long mins      = totalSecs / 60;
     unsigned long secs      = totalSecs % 60;
     status += " (" + String(mins) + "m " + String(secs)
-           + "s until turning " + (pumpState ? "off)" : "on)");
+           + "s <br>until turning " + (pumpState ? "off)" : "on)");
   }
   return status;
 }
@@ -248,7 +248,7 @@ String getPHControlStatus() {
   }
   
   // Build status string: "pH Condition: current pH (Mode details)"
-  status = phCondition + ": " + String(currentPH, 2) + " (";
+  status = phCondition + ": " + String(currentPH, 2) + "<br>(";
   
   if (!phConfig.autoMode) {
     // Manual mode - show what's currently active
@@ -418,6 +418,18 @@ void enablePHAutoMode(bool enable) {
     }
   } else {
     Serial.println("pH Auto mode disabled (manual mode)");
+    
+    // When switching to manual mode, stop any auto-controlled pumps
+    if (phUpActive) {
+      digitalWrite(phUpPumpPin, LOW);
+      phUpActive = false;
+      phUpLastActivation = millis();
+    }
+    if (phDownActive) {
+      digitalWrite(phDownPumpPin, LOW);
+      phDownActive = false;
+      phDownLastActivation = millis();
+    }
   }
 }
 
