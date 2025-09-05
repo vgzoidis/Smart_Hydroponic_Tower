@@ -5,11 +5,11 @@
 #include <Arduino_GFX_Library.h>
 
 // Display pin definitions
-#define TFT_CS     25  // CS pin
-#define TFT_RST    32  // RST pin  
-#define TFT_DC     33  // DC pin
-#define TFT_MOSI   27  // DIN pin
-#define TFT_SCLK   26  // CLK pin
+#define TFT_CS     33  // CS pin
+#define TFT_RST    5  // RST pin  
+#define TFT_DC     32  // DC pin
+#define TFT_MOSI   26  // DIN pin
+#define TFT_SCLK   25  // CLK pin
 
 // Color definitions
 #define BROWN     0x8400  // Brown color (RGB565)
