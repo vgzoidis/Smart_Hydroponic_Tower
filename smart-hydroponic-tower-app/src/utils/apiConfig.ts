@@ -1,7 +1,7 @@
 // API Configuration
 // Change this IP address to match your ESP32's IP address on the network
 export const API_CONFIG = {
-  BASE_URL: 'http://10.65.171.23',
+  BASE_URL: 'http://160.40.48.23',
   TIMEOUT: 8000, // 8 seconds timeout
   
   // API Endpoints
@@ -11,6 +11,12 @@ export const API_CONFIG = {
     PUMP_STATUS: '/pump/status',
     PUMP_CONFIG: '/pump/config',
     PUMP_STATE: '/pump/state',
+    // pH Control Endpoints
+    PH_STATUS: '/ph/status',
+    PH_UP: '/ph/up',
+    PH_DOWN: '/ph/down',
+    PH_STOP: '/ph/stop',
+    PH_CONFIG: '/ph/config',
   },
 };
 

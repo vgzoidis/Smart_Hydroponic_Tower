@@ -24,6 +24,21 @@ interface PumpStatus {
   offTime: number;
 }
 
+interface PHConfig {
+  autoMode: boolean;
+  target: number; // target pH value
+  tolerance: number; // tolerance range
+}
+
+interface PHStatus {
+  phStatus: boolean; // pH UP pump status
+  phDownStatus: boolean; // pH DOWN pump status
+  statusText: string;
+  autoMode: boolean;
+  target: number;
+  tolerance: number;
+}
+
 // Generate array of numbers from 1 to 180 for the picker
 const generateTimeOptions = () => {
   const options = [];
@@ -110,6 +125,86 @@ const NumberSelector: React.FC<{
   );
 };
 
+// Custom Decimal Number Selector Component for pH values
+const DecimalSelector: React.FC<{
+  value: number;
+  onValueChange: (value: number) => void;
+  disabled?: boolean;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  decimalPlaces: number;
+  quickSelectValues: number[];
+}> = ({ value, onValueChange, disabled = false, label, min, max, step, decimalPlaces, quickSelectValues }) => {
+  const handleDecrease = () => {
+    const multiplier = Math.pow(10, decimalPlaces);
+    const newValue = Math.max(min, (Math.round(value * multiplier) - Math.round(step * multiplier)) / multiplier);
+    onValueChange(Math.round(newValue * multiplier) / multiplier);
+  };
+
+  const handleIncrease = () => {
+    const multiplier = Math.pow(10, decimalPlaces);
+    const currentValueRounded = Math.round(value * multiplier) / multiplier;
+    const newValue = Math.min(max, (Math.round(currentValueRounded * multiplier) + Math.round(step * multiplier)) / multiplier);
+    const finalValue = Math.round(newValue * multiplier) / multiplier;
+    
+    onValueChange(finalValue);
+  };
+
+  return (
+    <View style={styles.numberSelectorContainer}>
+      <Text style={styles.pickerLabel}>{label}</Text>
+      
+      {/* Current Value Display */}
+      <View style={styles.currentValueContainer}>
+        <TouchableOpacity 
+          style={[styles.adjustButton, disabled && styles.buttonDisabled]} 
+          onPress={handleDecrease}
+          disabled={disabled || value <= min + 0.001}
+        >
+          <Text style={styles.adjustButtonText}>-</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.currentValueDisplay}>
+          <Text style={styles.currentValueText}>{value.toFixed(decimalPlaces)}</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={[styles.adjustButton, disabled && styles.buttonDisabled]} 
+          onPress={handleIncrease}
+          disabled={disabled || value >= max - 0.001}
+        >
+          <Text style={styles.adjustButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Quick Select Buttons */}
+      <View style={styles.quickSelectContainer}>
+        {quickSelectValues.map((quickValue) => (
+          <TouchableOpacity
+            key={quickValue}
+            style={[
+              styles.quickSelectButton,
+              Math.abs(value - quickValue) < 0.01 && styles.quickSelectButtonActive,
+              disabled && styles.buttonDisabled,
+            ]}
+            onPress={() => onValueChange(quickValue)}
+            disabled={disabled}
+          >
+            <Text style={[
+              styles.quickSelectButtonText,
+              Math.abs(value - quickValue) < 0.01 && styles.quickSelectButtonTextActive,
+            ]}>
+              {quickValue.toFixed(decimalPlaces)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 export const SettingsScreen: React.FC = () => {
   const [pumpConfig, setPumpConfig] = useState<PumpConfig>({
     autoMode: false,
@@ -126,6 +221,22 @@ export const SettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // pH Control State
+  const [phConfig, setPHConfig] = useState<PHConfig>({
+    autoMode: false,
+    target: 6.0,
+    tolerance: 0.5,
+  });
+  const [phStatus, setPHStatus] = useState<PHStatus>({
+    phStatus: false,
+    phDownStatus: false,
+    statusText: 'Loading...',
+    autoMode: false,
+    target: 6.0,
+    tolerance: 0.5,
+  });
+  const [isLoadingPH, setIsLoadingPH] = useState(false);
 
   // Clear messages after a delay
   useEffect(() => {
@@ -255,10 +366,177 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
+  // Handle manual pump toggle
+  const handlePumpToggle = async () => {
+    try {
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PUMP_TOGGLE),
+        getCommonFetchOptions('POST')
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Pump toggle response:', data);
+      
+      // Refresh pump status to get the latest state
+      await fetchPumpStatus();
+      
+    } catch (error) {
+      console.error('Error toggling pump:', error);
+      setErrorMessage('Failed to toggle pump. Please try again.');
+    }
+  };
+
+  // === pH CONTROL FUNCTIONS ===
+  
+  // Fetch current pH status and configuration
+  const fetchPHStatus = async () => {
+    try {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.PH_STATUS));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      setPHStatus(data);
+      setPHConfig({
+        autoMode: data.autoMode,
+        target: data.target,
+        tolerance: data.tolerance,
+      });
+      
+    } catch (error) {
+      console.error('Error fetching pH status:', error);
+      setErrorMessage('Failed to fetch pH status. Please check connection.');
+    }
+  };
+
+  // Update pH configuration
+  const updatePHConfig = async (config: Partial<PHConfig>) => {
+    setIsLoadingPH(true);
+    setErrorMessage('');
+    
+    try {
+      const params: Record<string, string> = {};
+      if (config.autoMode !== undefined) {
+        params.autoMode = config.autoMode.toString();
+      }
+      if (config.target !== undefined && config.tolerance !== undefined) {
+        params.target = config.target.toString();
+        params.tolerance = config.tolerance.toString();
+      }
+
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PH_CONFIG, params),
+        getCommonFetchOptions('PUT')
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      setPHConfig({
+        autoMode: data.autoMode,
+        target: data.target,
+        tolerance: data.tolerance,
+      });
+      
+      await fetchPHStatus();
+      
+    } catch (error) {
+      console.error('Error updating pH config:', error);
+      setErrorMessage('Failed to update pH configuration. Please try again.');
+    } finally {
+      setIsLoadingPH(false);
+    }
+  };
+
+  // Handle pH auto mode toggle
+  const handlePHAutoModeToggle = (value: boolean) => {
+    updatePHConfig({ autoMode: value });
+  };
+
+  // Handle pH target/tolerance change
+  const handlePHConfigChange = (field: 'target' | 'tolerance', value: number) => {
+    const newConfig = { ...phConfig, [field]: value };
+    setPHConfig(newConfig);
+    
+    if (phConfig.autoMode) {
+      updatePHConfig({
+        target: newConfig.target,
+        tolerance: newConfig.tolerance,
+      });
+    }
+  };
+
+  // Manual pH control functions
+  const handlePHUp = async () => {
+    try {
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PH_UP),
+        getCommonFetchOptions('POST')
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      await fetchPHStatus();
+    } catch (error) {
+      console.error('Error controlling pH UP pump:', error);
+      setErrorMessage('Failed to control pH UP pump.');
+    }
+  };
+
+  const handlePHDown = async () => {
+    try {
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PH_DOWN),
+        getCommonFetchOptions('POST')
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      await fetchPHStatus();
+    } catch (error) {
+      console.error('Error controlling pH DOWN pump:', error);
+      setErrorMessage('Failed to control pH DOWN pump.');
+    }
+  };
+
+  const handlePHStop = async () => {
+    try {
+      const response = await fetch(
+        getApiUrl(API_CONFIG.ENDPOINTS.PH_STOP),
+        getCommonFetchOptions('POST')
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      await fetchPHStatus();
+    } catch (error) {
+      console.error('Error stopping pH pumps:', error);
+      setErrorMessage('Failed to stop pH pumps.');
+    }
+  };
+
   // Fetch status on component mount and set up interval
   useEffect(() => {
     fetchPumpStatus();
-    const interval = setInterval(fetchPumpStatus, 2000); // Update every 2 seconds
+    fetchPHStatus();
+    const interval = setInterval(() => {
+      fetchPumpStatus();
+      fetchPHStatus();
+    }, 2000); // Update every 2 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -285,16 +563,23 @@ export const SettingsScreen: React.FC = () => {
         {/* Current Status */}
         <View style={styles.statusContainer}>
           <Text style={styles.statusLabel}>Status:</Text>
-          <Text style={[
-            styles.statusText,
-            { color: pumpStatus.pumpStatus ? Colors.good : Colors.textSecondary }
-          ]}>
-            {pumpStatus.statusText}
-          </Text>
+          <View style={styles.statusTextContainer}>
+            {pumpStatus.statusText.split('<br>').map((line, index) => (
+              <Text 
+                key={index}
+                style={[
+                  styles.statusText,
+                  { color: pumpStatus.pumpStatus ? Colors.good : Colors.textSecondary }
+                ]}
+              >
+                {line}
+              </Text>
+            ))}
+          </View>
         </View>
 
         {/* Auto Mode Toggle */}
-        <View style={styles.settingsItem}>
+        <View style={styles.toggleItem}>
           <Text style={styles.settingsLabel}>Auto Mode:</Text>
           <Switch
             value={pumpConfig.autoMode}
@@ -305,31 +590,163 @@ export const SettingsScreen: React.FC = () => {
           />
         </View>
 
+        {/* Manual Pump Control (only show when auto mode is off) */}
+        {!pumpConfig.autoMode && (
+          <View style={styles.manualControlContainer}>
+            <Text style={styles.manualControlTitle}>Manual Pump Control:</Text>
+            <View style={styles.singleButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.manualControlButton,
+                  styles.pumpToggleButton,
+                  pumpStatus.pumpStatus && styles.activePumpButton
+                ]}
+                onPress={handlePumpToggle}
+                disabled={isLoading}
+              >
+                <Text style={styles.manualControlButtonText}>
+                  {pumpStatus.pumpStatus ? 'STOP PUMP' : 'START PUMP'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Timing Configuration */}
         <View style={styles.timingContainer}>
           {/* Helper message when auto mode is off */}
           {!pumpConfig.autoMode && (
             <View style={styles.helperMessageContainer}>
               <Text style={styles.helperMessage}>
-                Enable Auto Mode to make timing changes
+                Enable Auto Mode to configure pump timing
               </Text>
             </View>
           )}
           
-          <NumberSelector
-            value={pumpConfig.onTime}
-            onValueChange={(value) => handleTimingChange('onTime', value)}
-            disabled={isLoading}
-            label="On Time (minutes):"
-          />
+          {/* Timing Controls (only show when auto mode is on) */}
+          {pumpConfig.autoMode && (
+            <>
+              <NumberSelector
+                value={pumpConfig.onTime}
+                onValueChange={(value) => handleTimingChange('onTime', value)}
+                disabled={isLoading}
+                label="On Time (minutes):"
+              />
 
-          <NumberSelector
-            value={pumpConfig.offTime}
-            onValueChange={(value) => handleTimingChange('offTime', value)}
-            disabled={isLoading}
-            label="Off Time (minutes):"
+              <NumberSelector
+                value={pumpConfig.offTime}
+                onValueChange={(value) => handleTimingChange('offTime', value)}
+                disabled={isLoading}
+                label="Off Time (minutes):"
+              />
+            </>
+          )}
+        </View>
+      </View>
+
+      {/* pH Configuration Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>pH Configuration</Text>
+        
+        {/* Current pH Status */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusLabel}>Status:</Text>
+          <View style={styles.statusTextContainer}>
+            {phStatus.statusText.split('<br>').map((line, index) => (
+              <Text 
+                key={index}
+                style={[
+                  styles.statusText,
+                  { color: (phStatus.phStatus || phStatus.phDownStatus) ? Colors.good : Colors.textSecondary }
+                ]}
+              >
+                {line}
+              </Text>
+            ))}
+          </View>
+        </View>
+
+        {/* pH Auto Mode Toggle */}
+        <View style={styles.toggleItem}>
+          <Text style={styles.settingsLabel}>pH Auto Mode:</Text>
+          <Switch
+            value={phConfig.autoMode}
+            onValueChange={handlePHAutoModeToggle}
+            trackColor={{ false: Colors.surfaceLight, true: Colors.primary }}
+            thumbColor={phConfig.autoMode ? Colors.accent : Colors.textSecondary}
+            disabled={isLoadingPH}
           />
         </View>
+
+        {/* Manual pH Control Buttons (only show when auto mode is off) */}
+        {!phConfig.autoMode && (
+          <View style={styles.manualControlContainer}>
+            <Text style={styles.manualControlTitle}>Manual pH Control:</Text>
+            <View style={styles.manualButtonsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.manualControlButton,
+                  styles.phDownButton,
+                  phStatus.phDownStatus && styles.activePhDownButton
+                ]}
+                onPress={handlePHDown}
+                disabled={isLoadingPH}
+              >
+                <Text style={styles.manualControlButtonText}>pH DOWN</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.manualControlButton,
+                  styles.phUpButton,
+                  phStatus.phStatus && styles.activePhUpButton
+                ]}
+                onPress={handlePHUp}
+                disabled={isLoadingPH}
+              >
+                <Text style={styles.manualControlButtonText}>pH UP</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* pH Configuration (only show when auto mode is on) */}
+        {phConfig.autoMode && (
+          <View style={styles.timingContainer}>
+            <DecimalSelector
+              value={phConfig.target}
+              onValueChange={(value) => handlePHConfigChange('target', value)}
+              disabled={isLoadingPH}
+              label="Target pH:"
+              min={4.0}
+              max={8.0}
+              step={0.1}
+              decimalPlaces={1}
+              quickSelectValues={[5.0, 5.5, 6.0, 6.5]}
+            />
+
+            <DecimalSelector
+              value={phConfig.tolerance}
+              onValueChange={(value) => handlePHConfigChange('tolerance', value)}
+              disabled={isLoadingPH}
+              label="Tolerance (±):"
+              min={0.1}
+              max={1.0}
+              step={0.1}
+              decimalPlaces={1}
+              quickSelectValues={[0.2, 0.5, 0.7, 1.0]}
+            />
+          </View>
+        )}
+
+        {/* Helper message when auto mode is off */}
+        {!phConfig.autoMode && (
+          <View style={styles.helperMessageContainer}>
+            <Text style={styles.helperMessage}>
+              Enable Auto Mode to configure target pH and tolerance
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Sensor Configuration Section */}
@@ -428,7 +845,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     padding: 15,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
@@ -445,6 +862,11 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: 10,
   },
+  statusTextContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginLeft: 10,
+  },
   settingsItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -454,7 +876,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
+  },
+  toggleItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    marginBottom: 5,
   },
   settingsLabel: {
     fontSize: 16,
@@ -462,13 +895,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   timingContainer: {
-    marginTop: 10,
+    marginTop: 15,
   },
   helperMessageContainer: {
     backgroundColor: 'rgba(255,165,0,0.1)',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 15,
     borderWidth: 1,
     borderColor: Colors.warning,
   },
@@ -578,5 +1011,73 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: 'bold',
     textAlign: 'right',
+  },
+  // pH Control styles
+  manualControlContainer: {
+    marginTop: 15,
+    marginBottom: 15,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 10,
+    padding: 15,
+  },
+  manualControlTitle: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '600',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  manualButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: 20,
+  },
+  singleButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  manualControlButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.surfaceLight,
+  },
+  manualControlButtonText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  phUpButton: {
+    borderColor: Colors.good,
+  },
+  phDownButton: {
+    borderColor: Colors.critical,
+  },
+  phStopButton: {
+    borderColor: Colors.warning,
+  },
+  activeButton: {
+    backgroundColor: 'rgba(56,178,172,0.3)',
+  },
+  activePhUpButton: {
+    backgroundColor: Colors.good,
+    borderColor: Colors.good,
+  },
+  activePhDownButton: {
+    backgroundColor: Colors.critical,
+    borderColor: Colors.critical,
+  },
+  pumpToggleButton: {
+    borderColor: Colors.primary,
+  },
+  activePumpButton: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
 });
