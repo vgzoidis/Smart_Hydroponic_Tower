@@ -4,7 +4,7 @@
 -- Create the sensor data table
 CREATE TABLE IF NOT EXISTS sensor_data (
     id BIGSERIAL PRIMARY KEY,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'Europe/Athens'),
     timestamp BIGINT NOT NULL,
     
     -- Sensor readings

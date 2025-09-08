@@ -1,25 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase Configuration
-// Replace these with your actual Supabase project URL and anon key
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://jnvbsbphxvypcuorolen.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudmJzYnBoeHZ5cGN1b3JvbGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMDY4MjEsImV4cCI6MjA3MTc4MjgyMX0.S0MrRcN_fNfTdIeIRPO6uqB7QfpwtY4vIchLpr8tTH0';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Interface for sensor data stored in Supabase
+// Interface for sensor data stored in Supabase (matching your actual schema)
 export interface SensorDataRecord {
   id: number;
   created_at: string;
-  water_temp: number;
-  water_ph: number;
-  ec_level: number;
-  water_level: boolean;
-  pump_status: boolean;
-  env_temp: number;
-  humidity: number;
-  light_level: number;
-  co2_level: number;
+  timestamp: number;
+  co2_level: number | null;
+  ph_level: number | null;
+  water_temp: number | null;
+  env_temp: number | null;
+  humidity: number | null;
+  light_level: number | null;
+  ec_level: number | null;
+  water_level: boolean | null;
 }
 
 // Time range options
@@ -44,18 +43,23 @@ export const getSensorData = async (timeRange: TimeRange): Promise<SensorDataRec
       startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   }
 
-  const { data, error } = await supabase
-    .from('sensor_data') // Replace with your actual table name
-    .select('*')
-    .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('sensor_data')
+      .select('*')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching sensor data:', error);
-    throw error;
+    if (error) {
+      console.error('Error fetching sensor data:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getSensorData:', error);
+    return [];
   }
-
-  return data || [];
 };
 
 // Function to get the latest sensor readings count for each time range
@@ -77,15 +81,20 @@ export const getDataPointsCount = async (timeRange: TimeRange): Promise<number> 
       startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   }
 
-  const { count, error } = await supabase
-    .from('sensor_data')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', startDate.toISOString());
+  try {
+    const { count, error } = await supabase
+      .from('sensor_data')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startDate.toISOString());
 
-  if (error) {
-    console.error('Error getting data count:', error);
+    if (error) {
+      console.error('Error getting data count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Error in getDataPointsCount:', error);
     return 0;
   }
-
-  return count || 0;
 };

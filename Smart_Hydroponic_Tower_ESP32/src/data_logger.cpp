@@ -1,4 +1,5 @@
 #include "data_logger.h"
+#include "esp_task_wdt.h"
 
 // Global variables
 static bool loggerEnabled = true;
@@ -43,20 +44,17 @@ void logSensorDataToCloud() {
   }
   
   // Use the current sensor data from the global sensors
-  Serial.println("📊 Uploading sensor data to cloud...");
-  Serial.printf("CO2: %.0f ppm, pH: %.2f, Water: %.1f°C, Air: %.1f°C\n", 
-                currentSensors.co2Level, currentSensors.waterPH, 
-                currentSensors.waterTemp, currentSensors.envTemp);
+  Serial.println("Uploading sensor data to cloud...");
   
   // Attempt upload
   if (uploadSensorData(currentSensors)) {
-    Serial.println("✅ Data uploaded successfully!");
+    Serial.println("Data uploaded successfully!");
     lastStatus = "Upload Success";
     successfulUploads++;
     failedUploads = 0; // Reset failed counter on success
   } else {
     failedUploads++;
-    Serial.printf("❌ Upload failed (attempt %d)\n", failedUploads);
+    Serial.printf("Upload failed (attempt %d)\n", failedUploads);
     lastStatus = "Upload Failed";
   }
 }
@@ -82,12 +80,14 @@ bool uploadSensorData(const SensorData& data) {
   while (attempts < MAX_RETRY_ATTEMPTS) {
     attempts++;
     
+    // Reset watchdog to prevent timeout during HTTP request
+    esp_task_wdt_reset();
+    
     httpResponseCode = http.POST(jsonPayload);
     
     if (httpResponseCode >= 200 && httpResponseCode < 300) {
       break; // Success!
     } else {
-      Serial.printf("Upload attempt %d failed with HTTP code: %d\n", attempts, httpResponseCode);
       if (attempts < MAX_RETRY_ATTEMPTS) {
         delay(1000); // Wait 1 second before retry
       }
@@ -146,7 +146,22 @@ int getSuccessfulUploadCount() {
 
 // Manual logging function (for testing/immediate upload)
 void triggerManualLog() {
-  Serial.println("🔧 Manual log triggered");
-  lastLogTime = 0; // Reset timer to force immediate log
-  logSensorDataToCloud();
+  Serial.println("Manual log triggered");
+  
+  // Check WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Cannot log: WiFi not connected");
+    lastStatus = "WiFi Offline - Manual";
+    return;
+  }
+
+  // Attempt upload (bypass the timer and enabled checks)
+  if (uploadSensorData(currentSensors)) {
+    Serial.println("Manual upload successful!");
+    lastStatus = "Manual Upload Success";
+    successfulUploads++;
+  } else {
+    Serial.println("Manual upload failed");
+    lastStatus = "Manual Upload Failed";
+  }
 }

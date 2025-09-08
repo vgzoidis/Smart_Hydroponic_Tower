@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 #include "sensors.h"
 
-// Supabase Configuration (replace with your actual values)
+// Supabase Configuration
 #define SUPABASE_URL "https://jnvbsbphxvypcuorolen.supabase.co"
 #define SUPABASE_API_KEY "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudmJzYnBoeHZ5cGN1b3JvbGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMDY4MjEsImV4cCI6MjA3MTc4MjgyMX0.S0MrRcN_fNfTdIeIRPO6uqB7QfpwtY4vIchLpr8tTH0"
 

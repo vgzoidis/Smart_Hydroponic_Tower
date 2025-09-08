@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { Colors } from '../constants/Colors';
@@ -31,10 +32,10 @@ export const PlottingScreen: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [dataPointsCount, setDataPointsCount] = useState<number>(0);
 
-  // Sensor options for plotting
+  // Sensor options for plotting (matching your database schema)
   const sensorOptions = [
     { key: 'water_temp', label: 'Water Temp (°C)', color: Colors.primary },
-    { key: 'water_ph', label: 'pH Level', color: Colors.good },
+    { key: 'ph_level', label: 'pH Level', color: Colors.good },
     { key: 'ec_level', label: 'EC Level (mS/cm)', color: Colors.warning },
     { key: 'env_temp', label: 'Env Temp (°C)', color: Colors.accent },
     { key: 'humidity', label: 'Humidity (%)', color: Colors.critical },
@@ -49,12 +50,12 @@ export const PlottingScreen: React.FC = () => {
     { key: 'month', label: 'This Month' },
   ];
 
-  // Fetch sensor data when time range changes
+  // Load data when component mounts or time range/sensor changes
   useEffect(() => {
-    fetchData();
+    loadSensorData();
   }, [selectedTimeRange]);
 
-  const fetchData = async () => {
+  const loadSensorData = async () => {
     setIsLoading(true);
     setError('');
     
@@ -67,195 +68,197 @@ export const PlottingScreen: React.FC = () => {
       setSensorData(data);
       setDataPointsCount(count);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load sensor data. Please check your Supabase configuration.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load sensor data';
+      setError(errorMessage);
+      console.error('Error loading sensor data:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Format data for chart
-  const formatChartData = (): ChartData => {
-    if (!sensorData.length) {
+  // Function to prepare chart data for the selected sensor
+  const prepareChartData = (): ChartData => {
+    if (sensorData.length === 0) {
       return {
         labels: ['No Data'],
-        datasets: [{ data: [0] }]
+        datasets: [{ data: [0] }],
       };
     }
 
-    // Sample data points based on time range to avoid overcrowding
-    let sampledData = sensorData;
-    const maxPoints = 20;
-    
-    if (sensorData.length > maxPoints) {
-      const step = Math.ceil(sensorData.length / maxPoints);
-      sampledData = sensorData.filter((_, index) => index % step === 0);
+    // Filter out null values and prepare data
+    const validData = sensorData
+      .map(record => ({
+        time: new Date(record.created_at),
+        value: record[selectedSensor as keyof SensorDataRecord] as number | null,
+      }))
+      .filter(item => item.value !== null && item.value !== undefined);
+
+    if (validData.length === 0) {
+      return {
+        labels: ['No Data'],
+        datasets: [{ data: [0] }],
+      };
     }
 
-    const labels = sampledData.map(record => {
-      const date = new Date(record.created_at);
-      switch (selectedTimeRange) {
-        case 'day':
-          return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        case 'week':
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        case 'month':
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        default:
-          return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    // Create labels based on time range
+    const labels = validData.map(item => {
+      const time = item.time;
+      if (selectedTimeRange === 'day') {
+        return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      } else if (selectedTimeRange === 'week') {
+        return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else {
+        return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
     });
 
-    const currentSensor = sensorOptions.find(s => s.key === selectedSensor);
-    const data = sampledData.map(record => {
-      const value = record[selectedSensor as keyof SensorDataRecord];
-      return typeof value === 'number' ? value : 0;
-    });
+    const selectedSensorOption = sensorOptions.find(option => option.key === selectedSensor);
+    const sensorColor = selectedSensorOption?.color || Colors.primary;
 
     return {
       labels,
       datasets: [{
-        data,
-        color: (opacity = 1) => currentSensor?.color || Colors.primary,
-        strokeWidth: 3,
-      }]
+        data: validData.map(item => item.value as number),
+        color: (opacity = 1) => sensorColor,
+        strokeWidth: 2,
+      }],
     };
   };
 
-  const chartConfig = {
-    backgroundColor: 'transparent',
-    backgroundGradientFrom: 'rgba(255,255,255,0.1)',
-    backgroundGradientTo: 'rgba(255,255,255,0.05)',
-    decimalPlaces: 1,
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '4',
-      strokeWidth: '2',
-      stroke: Colors.primary,
-    },
-  };
-
-  const TimeRangeToggle = () => (
-    <View style={styles.toggleContainer}>
-      <Text style={styles.sectionTitle}>Time Range</Text>
-      <View style={styles.toggleRow}>
-        {timeRangeOptions.map((option) => (
-          <TouchableOpacity
-            key={option.key}
-            style={[
-              styles.toggleButton,
-              selectedTimeRange === option.key && styles.activeToggleButton,
-            ]}
-            onPress={() => setSelectedTimeRange(option.key)}
-          >
-            <Text
-              style={[
-                styles.toggleButtonText,
-                selectedTimeRange === option.key && styles.activeToggleButtonText,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const SensorSelector = () => (
-    <View style={styles.toggleContainer}>
-      <Text style={styles.sectionTitle}>Select Sensor</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sensorScrollView}>
-        {sensorOptions.map((sensor) => (
-          <TouchableOpacity
-            key={sensor.key}
-            style={[
-              styles.sensorButton,
-              selectedSensor === sensor.key && styles.activeSensorButton,
-              { borderColor: sensor.color }
-            ]}
-            onPress={() => setSelectedSensor(sensor.key)}
-          >
-            <Text
-              style={[
-                styles.sensorButtonText,
-                selectedSensor === sensor.key && styles.activeSensorButtonText,
-              ]}
-            >
-              {sensor.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
+  const chartData = prepareChartData();
+  const selectedSensorOption = sensorOptions.find(option => option.key === selectedSensor);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.tabContent}>
-      <Text style={styles.tabTitle}>Sensor Data Plotting</Text>
-      
-      <TimeRangeToggle />
-      <SensorSelector />
-
-      {/* Data Info */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Data Points: {dataPointsCount} | Showing: {sensorData.length} points
-        </Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Sensor Data Plotting</Text>
+        <Text style={styles.subtitle}>Historical data visualization</Text>
       </View>
 
-      {/* Error Message */}
+      {/* Time Range Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Time Range</Text>
+        <View style={styles.buttonRow}>
+          {timeRangeOptions.map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={[
+                styles.toggleButton,
+                selectedTimeRange === option.key && styles.toggleButtonActive,
+              ]}
+              onPress={() => setSelectedTimeRange(option.key)}
+            >
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  selectedTimeRange === option.key && styles.toggleButtonTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Sensor Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Sensor Type</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.sensorRow}>
+            {sensorOptions.map((option) => (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.sensorButton,
+                  selectedSensor === option.key && { backgroundColor: option.color },
+                ]}
+                onPress={() => setSelectedSensor(option.key)}
+              >
+                <Text
+                  style={[
+                    styles.sensorButtonText,
+                    selectedSensor === option.key && styles.sensorButtonTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Data Info */}
+      <View style={styles.dataInfo}>
+        <Text style={styles.dataInfoText}>
+          📊 {dataPointsCount} data points • {selectedSensorOption?.label || 'Unknown Sensor'}
+        </Text>
+        {isLoading && <ActivityIndicator size="small" color={Colors.primary} />}
+      </View>
+
+      {/* Error Display */}
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadSensorData}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
-      {/* Loading Indicator */}
-      {isLoading ? (
+      {/* Chart Display */}
+      {!isLoading && !error && (
+        <View style={styles.chartContainer}>
+          {chartData.datasets[0].data.length > 1 && chartData.datasets[0].data.some(d => d > 0) ? (
+            <LineChart
+              data={chartData}
+              width={screenWidth - 40}
+              height={220}
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: 'transparent',
+                backgroundGradientFrom: 'transparent',
+                backgroundGradientTo: 'transparent',
+                decimalPlaces: 2,
+                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.8})`,
+                style: {
+                  borderRadius: 16,
+                },
+                propsForDots: {
+                  r: '4',
+                  strokeWidth: '2',
+                  stroke: selectedSensorOption?.color || Colors.primary,
+                },
+              }}
+              bezier
+              style={styles.chart}
+              withHorizontalLabels={true}
+              withVerticalLabels={true}
+              withDots={true}
+              withShadow={false}
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>📊 No data available</Text>
+              <Text style={styles.noDataSubtext}>
+                {dataPointsCount === 0 
+                  ? 'No sensor data found for this time range' 
+                  : 'Selected sensor has no valid readings'}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading sensor data...</Text>
         </View>
-      ) : null}
-
-      {/* Chart */}
-      {!isLoading && !error && sensorData.length > 0 ? (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>
-            {sensorOptions.find(s => s.key === selectedSensor)?.label} - {timeRangeOptions.find(t => t.key === selectedTimeRange)?.label}
-          </Text>
-          <LineChart
-            data={formatChartData()}
-            width={screenWidth - 40}
-            height={220}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-            withDots={true}
-            withShadow={false}
-            withScrollableDot={true}
-          />
-        </View>
-      ) : !isLoading && !error ? (
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No data available for the selected time range</Text>
-        </View>
-      ) : null}
-
-      {/* Configuration Note */}
-      <View style={styles.configNote}>
-        <Text style={styles.configNoteText}>
-          � Note: Update the Supabase configuration in src/utils/supabaseConfig.ts with your project URL and API key.
-        </Text>
-      </View>
+      )}
     </ScrollView>
   );
 };
@@ -263,170 +266,158 @@ export const PlottingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background,
   },
-  tabContent: {
+  header: {
     padding: 20,
-    alignItems: 'center',
+    paddingBottom: 10,
   },
-  tabTitle: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 5,
   },
-  toggleContainer: {
-    width: '100%',
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  section: {
+    marginHorizontal: 20,
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 10,
   },
-  toggleRow: {
+  buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 8,
-    padding: 4,
+    gap: 10,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 2,
   },
-  activeToggleButton: {
+  toggleButtonActive: {
     backgroundColor: Colors.primary,
   },
   toggleButtonText: {
     color: Colors.textSecondary,
     fontSize: 14,
+    fontWeight: '500',
+  },
+  toggleButtonTextActive: {
+    color: Colors.text,
     fontWeight: '600',
   },
-  activeToggleButtonText: {
-    color: Colors.text,
-  },
-  sensorScrollView: {
+  sensorRow: {
     flexDirection: 'row',
+    gap: 10,
+    paddingRight: 20,
   },
   sensorButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: Colors.surfaceLight,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    marginRight: 10,
     alignItems: 'center',
-  },
-  activeSensorButton: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    minWidth: 100,
   },
   sensorButtonText: {
     color: Colors.textSecondary,
     fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  sensorButtonTextActive: {
+    color: Colors.text,
     fontWeight: '600',
   },
-  activeSensorButtonText: {
-    color: Colors.text,
-  },
-  infoContainer: {
-    width: '100%',
+  dataInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
   },
-  infoText: {
+  dataInfoText: {
     color: Colors.textSecondary,
-    fontSize: 12,
-    textAlign: 'center',
+    fontSize: 14,
+    flex: 1,
   },
   errorContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(244,67,54,0.1)',
-    borderColor: Colors.critical,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 15,
+    marginHorizontal: 20,
     marginBottom: 20,
-    alignItems: 'center',
+    padding: 15,
+    backgroundColor: 'rgba(255,69,58,0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,69,58,0.3)',
   },
   errorText: {
-    color: Colors.critical,
+    color: '#FF453A',
     fontSize: 14,
-    textAlign: 'center',
     marginBottom: 10,
   },
   retryButton: {
-    backgroundColor: Colors.critical,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,69,58,0.2)',
     borderRadius: 6,
   },
   retryButtonText: {
-    color: Colors.text,
-    fontSize: 14,
+    color: '#FF453A',
+    fontSize: 12,
     fontWeight: '600',
   },
+  chartContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  noDataContainer: {
+    width: screenWidth - 40,
+    height: 220,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  noDataText: {
+    fontSize: 18,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  noDataSubtext: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
   loadingContainer: {
-    width: '100%',
     alignItems: 'center',
     paddingVertical: 40,
   },
   loadingText: {
     color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: 16,
     marginTop: 10,
-  },
-  chartContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  chart: {
-    borderRadius: 8,
-  },
-  noDataContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 8,
-    padding: 30,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  noDataText: {
-    color: Colors.textSecondary,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  configNote: {
-    width: '100%',
-    backgroundColor: 'rgba(255,165,0,0.1)',
-    borderColor: Colors.warning,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 15,
-    marginTop: 20,
-  },
-  configNoteText: {
-    color: Colors.warning,
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });
