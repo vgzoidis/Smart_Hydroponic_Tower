@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 4, // More space from bar
+    marginBottom: 0, // More space from bar
     height: 25, // Increased height for visibility to prevent cutoff
     minWidth: 25, // Smaller width for closer spacing
     overflow: 'visible', // Ensure text isn't clipped
