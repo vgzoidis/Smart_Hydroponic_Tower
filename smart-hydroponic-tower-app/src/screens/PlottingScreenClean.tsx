@@ -11,7 +11,7 @@ import {
 import { Colors } from '../constants/Colors';
 
 // Import safe Supabase functions
-import { testConnection, type SensorDataRecord, type TimeRange } from '../utils/supabaseConfigSafe';
+import { testConnection, fetchSensorData, type SensorDataRecord, type TimeRange } from '../utils/supabaseConfigSafe';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -55,9 +55,16 @@ export const PlottingScreen: React.FC = () => {
   // Initialize with safe defaults
   useEffect(() => {
     console.log('PlottingScreen mounted successfully');
-    setConnectionStatus('Ready to test');
-    setError('Click "Test Connection" to check database connectivity');
+    setConnectionStatus('Ready');
+    setError('Select time range and sensor type, then click "Load Data"');
   }, []);
+
+  // Load data when sensor or time range changes
+  useEffect(() => {
+    if (connectionStatus === 'Connected') {
+      loadSensorData();
+    }
+  }, [selectedTimeRange, selectedSensor, connectionStatus]);
 
   const handleTestConnection = async () => {
     try {
@@ -70,6 +77,8 @@ export const PlottingScreen: React.FC = () => {
       if (result.success) {
         setConnectionStatus('Connected');
         setError('');
+        // Automatically load data after successful connection
+        loadSensorData();
       } else {
         setConnectionStatus('Failed');
         setError(result.message);
@@ -82,11 +91,159 @@ export const PlottingScreen: React.FC = () => {
     }
   };
 
+  const loadSensorData = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      console.log(`Loading ${selectedSensor} data for ${selectedTimeRange}...`);
+      
+      // Add a small delay to see if the crash happens immediately
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const result = await fetchSensorData(selectedTimeRange);
+      
+      console.log('Fetch result:', { 
+        hasError: !!result.error, 
+        dataLength: result.data?.length || 0,
+        error: result.error 
+      });
+      
+      if (result.error) {
+        setError(`Data fetch error: ${result.error}`);
+        setSensorData([]);
+        setDataPointsCount(0);
+      } else {
+        // Filter out records where the selected sensor value is null
+        const validData = result.data.filter(record => {
+          const value = record[selectedSensor as keyof SensorDataRecord];
+          return value !== null && value !== undefined;
+        });
+        
+        console.log(`Filtered ${validData.length} valid records from ${result.data.length} total`);
+        
+        setSensorData(validData);
+        setDataPointsCount(validData.length);
+        setError('');
+        console.log(`Successfully loaded ${validData.length} valid data points`);
+      }
+    } catch (error) {
+      console.error('Load data error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to load data: ${errorMessage}`);
+      setSensorData([]);
+      setDataPointsCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const prepareChartData = (): ChartData => {
+    if (sensorData.length === 0) {
+      return {
+        labels: ['No Data'],
+        datasets: [{ data: [0] }],
+      };
+    }
+
+    // Sample data points for performance (max 10 points for bar chart)
+    const maxPoints = 10;
+    const step = Math.ceil(sensorData.length / maxPoints);
+    const sampledData = sensorData.filter((_, index) => index % step === 0);
+
+    const labels = sampledData.map(record => {
+      const date = new Date(record.created_at);
+      if (selectedTimeRange === 'day') {
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      } else if (selectedTimeRange === 'week') {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+    });
+
+    const values = sampledData.map(record => {
+      const value = record[selectedSensor as keyof SensorDataRecord];
+      
+      // Handle water_level boolean
+      if (selectedSensor === 'water_level') {
+        return value ? 1 : 0;
+      }
+      
+      return typeof value === 'number' ? value : 0;
+    });
+
+    const selectedColor = selectedSensorOption?.color || Colors.primary;
+
     return {
-      labels: ['No Data'],
-      datasets: [{ data: [0] }],
+      labels,
+      datasets: [{
+        data: values,
+        color: (opacity = 1) => selectedColor,
+        strokeWidth: 2,
+      }],
     };
+  };
+
+  // Custom chart component using React Native Views
+  const CustomChart = ({ data }: { data: ChartData }) => {
+    const chartWidth = screenWidth - 60;
+    const chartHeight = 180;
+    const values = data.datasets[0].data;
+    const labels = data.labels;
+    
+    if (values.length === 0 || values.every(v => v === 0)) {
+      return (
+        <View style={[styles.customChart, { height: chartHeight }]}>
+          <Text style={styles.noDataText}>No chart data available</Text>
+        </View>
+      );
+    }
+
+    const maxValue = Math.max(...values);
+    const minValue = Math.min(...values);
+    const range = maxValue - minValue || 1;
+    
+    return (
+      <View style={styles.customChart}>
+        <Text style={styles.chartTitle}>
+          {selectedSensorOption?.label} - {timeRangeOptions.find(opt => opt.key === selectedTimeRange)?.label}
+        </Text>
+        
+        {/* Y-axis labels */}
+        <View style={styles.yAxisContainer}>
+          <Text style={styles.yAxisLabel}>{maxValue.toFixed(1)}</Text>
+          <Text style={styles.yAxisLabel}>{((maxValue + minValue) / 2).toFixed(1)}</Text>
+          <Text style={styles.yAxisLabel}>{minValue.toFixed(1)}</Text>
+        </View>
+        
+        {/* Chart area */}
+        <View style={styles.chartArea}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.barsContainer}>
+              {values.map((value, index) => {
+                const barHeight = ((value - minValue) / range) * (chartHeight - 60);
+                return (
+                  <View key={index} style={styles.barColumn}>
+                    <View 
+                      style={[
+                        styles.bar, 
+                        { 
+                          height: Math.max(barHeight, 2),
+                          backgroundColor: selectedSensorOption?.color || Colors.primary 
+                        }
+                      ]} 
+                    />
+                    <Text style={styles.barLabel}>{labels[index]}</Text>
+                    <Text style={styles.barValue}>{value.toFixed(1)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    );
   };
 
   const chartData = prepareChartData();
@@ -169,27 +326,64 @@ export const PlottingScreen: React.FC = () => {
         </View>
       ) : null}
 
-      {/* Test Connection Button */}
-      <View style={styles.testSection}>
+      {/* Controls Section */}
+      <View style={styles.controlsSection}>
         <TouchableOpacity 
-          style={styles.testButton} 
-          onPress={handleTestConnection}
+          style={[
+            styles.actionButton,
+            connectionStatus === 'Connected' ? styles.loadDataButton : styles.connectButton
+          ]} 
+          onPress={connectionStatus === 'Connected' ? loadSensorData : handleTestConnection}
           disabled={isLoading}
         >
-          <Text style={styles.testButtonText}>
-            {isLoading ? 'Testing...' : 'Test Connection'}
+          <Text style={styles.actionButtonText}>
+            {isLoading ? 'Loading...' : 
+             connectionStatus === 'Connected' ? 'Refresh Data' : 'Connect & Load Data'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Chart Placeholder */}
+      {/* Chart Section */}
       <View style={styles.chartContainer}>
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>Chart Temporarily Disabled</Text>
-          <Text style={styles.noDataSubtext}>
-            Testing component stability before enabling Supabase integration
-          </Text>
-        </View>
+        {connectionStatus === 'Connected' && sensorData.length > 0 && !isLoading ? (
+          <View>
+            {/* Custom chart using React Native Views */}
+            <CustomChart data={chartData} />
+            
+            {/* Keep data preview below chart */}
+            <View style={styles.dataList}>
+              <Text style={styles.dataListTitle}>Recent Data (Last 5 readings):</Text>
+              {sensorData.slice(-5).map((record, index) => (
+                <Text key={index} style={styles.dataRow}>
+                  {new Date(record.created_at).toLocaleString()}: {
+                    selectedSensor === 'water_level' 
+                      ? (record[selectedSensor as keyof SensorDataRecord] ? 'High' : 'Low')
+                      : record[selectedSensor as keyof SensorDataRecord]
+                  }
+                </Text>
+              ))}
+            </View>
+          </View>
+        ) : sensorData.length === 0 && connectionStatus === 'Connected' && !isLoading ? (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No Data Available</Text>
+            <Text style={styles.noDataSubtext}>
+              No {selectedSensorOption?.label.toLowerCase()} data found for the selected time range
+            </Text>
+          </View>
+        ) : connectionStatus !== 'Connected' ? (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>Database Not Connected</Text>
+            <Text style={styles.noDataSubtext}>
+              Click "Connect & Load Data" to fetch sensor data from Supabase
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.noDataText}>Loading Data...</Text>
+          </View>
+        )}
       </View>
 
       {/* Loading State */}
@@ -366,5 +560,119 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
+  },
+  controlsSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  actionButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    minWidth: 180,
+    alignItems: 'center',
+  },
+  connectButton: {
+    backgroundColor: Colors.primary,
+  },
+  loadDataButton: {
+    backgroundColor: Colors.good,
+  },
+  actionButtonText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  dataPreview: {
+    fontSize: 16,
+    color: Colors.warning,
+    textAlign: 'center',
+    marginBottom: 15,
+    fontWeight: '600',
+  },
+  dataList: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    padding: 15,
+    width: screenWidth - 40,
+  },
+  dataListTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  dataRow: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 5,
+    fontFamily: 'monospace',
+  },
+  customChart: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    width: screenWidth - 40,
+  },
+  yAxisContainer: {
+    position: 'absolute',
+    left: 5,
+    top: 40,
+    height: 140,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    width: 30,
+  },
+  yAxisLabel: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+  },
+  chartArea: {
+    marginLeft: 35,
+    marginTop: 10,
+  },
+  barsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 140,
+    paddingHorizontal: 10,
+  },
+  barColumn: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    minWidth: 40,
+  },
+  bar: {
+    width: 20,
+    borderRadius: 2,
+    marginBottom: 5,
+  },
+  barLabel: {
+    fontSize: 9,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 5,
+    transform: [{ rotate: '-45deg' }],
+  },
+  barValue: {
+    fontSize: 10,
+    color: Colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
