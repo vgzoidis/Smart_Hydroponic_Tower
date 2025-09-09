@@ -1,103 +1,12 @@
+// Import URL polyfill for React Native
+import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://jnvbsbphxvypcuorolen.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudmJzYnBoeHZ5cGN1b3JvbGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMDY4MjEsImV4cCI6MjA3MTc4MjgyMX0.S0MrRcN_fNfTdIeIRPO6uqB7QfpwtY4vIchLpr8tTH0';
 
-// Initialize Supabase client with error handling
-let supabase: any = null;
-let initializationError: string | null = null;
-
-try {
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: false, // Disable session persistence to avoid storage issues
-      autoRefreshToken: false, // Disable auto refresh for simpler setup
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'smart-hydroponic-tower-app',
-      },
-      fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
-        // Custom fetch with timeout and better error handling for React Native
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 10000)
-        );
-        
-        const fetchPromise = fetch(url, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
-        });
-        
-        return Promise.race([fetchPromise, timeoutPromise]);
-      },
-    },
-  });
-  console.log('Supabase client initialized successfully');
-} catch (error) {
-  console.error('Failed to initialize Supabase client:', error);
-  initializationError = error instanceof Error ? error.message : 'Unknown initialization error';
-}
-
-export { supabase };
-
-// Simple network connectivity test
-export const testNetworkConnectivity = async (): Promise<boolean> => {
-  try {
-    console.log('Testing basic network connectivity...');
-    const response = await fetch('https://httpbin.org/status/200', {
-      method: 'GET',
-      headers: {
-        'Cache-Control': 'no-cache',
-      },
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Network connectivity test failed:', error);
-    return false;
-  }
-};
-
-// Test function to verify Supabase connection
-export const testSupabaseConnection = async (): Promise<boolean> => {
-  try {
-    if (!supabase) {
-      console.error('Supabase client not initialized:', initializationError);
-      return false;
-    }
-
-    // First test basic network connectivity
-    console.log('Testing basic network connectivity...');
-    const hasNetwork = await testNetworkConnectivity();
-    if (!hasNetwork) {
-      console.error('No network connectivity detected');
-      return false;
-    }
-    console.log('Network connectivity confirmed');
-
-    console.log('Testing Supabase connection...');
-    const { error } = await supabase
-      .from('sensor_data')
-      .select('id', { count: 'exact', head: true })
-      .limit(1);
-    
-    if (error) {
-      console.error('Supabase connection test failed:', error);
-      return false;
-    }
-    
-    console.log('Supabase connection test successful');
-    return true;
-  } catch (error) {
-    console.error('Supabase connection test exception:', error);
-    return false;
-  }
-};
-
-// Interface for sensor data stored in Supabase (matching your actual schema)
+// Interface for sensor data stored in Supabase
 export interface SensorDataRecord {
   id: number;
   created_at: string;
@@ -115,59 +24,118 @@ export interface SensorDataRecord {
 // Time range options
 export type TimeRange = 'day' | 'week' | 'month';
 
-// Function to get sensor data for a specific time range
-export const getSensorData = async (timeRange: TimeRange): Promise<SensorDataRecord[]> => {
+// Simple client creation with minimal configuration
+export const createSupabaseClient = () => {
   try {
-    if (!supabase) {
-      throw new Error(`Supabase client not initialized: ${initializationError || 'Unknown error'}`);
-    }
-
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeRange) {
-      case 'day':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
-        break;
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-        break;
-      default:
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    }
-
-    console.log(`Fetching sensor data for ${timeRange} from ${startDate.toISOString()}`);
-
-    const { data, error } = await supabase
-      .from('sensor_data')
-      .select('*')
-      .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching sensor data:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    console.log(`Successfully fetched ${data?.length || 0} sensor records`);
-    return data || [];
+    console.log('=== SUPABASE CLIENT CREATION START ===');
+    
+    // Check for required Web APIs
+    console.log('Checking Web API availability...');
+    console.log('URL available:', typeof URL !== 'undefined');
+    console.log('fetch available:', typeof fetch !== 'undefined');
+    console.log('Headers available:', typeof Headers !== 'undefined');
+    console.log('Request available:', typeof Request !== 'undefined');
+    console.log('Response available:', typeof Response !== 'undefined');
+    
+    console.log('Checking createClient function...');
+    console.log('createClient type:', typeof createClient);
+    console.log('createClient exists:', createClient !== undefined);
+    
+    console.log('Checking URL and key...');
+    console.log('URL:', SUPABASE_URL);
+    console.log('URL type:', typeof SUPABASE_URL);
+    console.log('Key length:', SUPABASE_ANON_KEY.length);
+    console.log('Key type:', typeof SUPABASE_ANON_KEY);
+    
+    console.log('Attempting to call createClient...');
+    
+    // Try with absolutely no options first
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    console.log('Client creation successful!');
+    console.log('Client type:', typeof client);
+    console.log('Client exists:', client !== undefined);
+    console.log('=== SUPABASE CLIENT CREATION END ===');
+    return client;
   } catch (error) {
-    console.error('Error in getSensorData:', error);
+    console.error('=== SUPABASE CLIENT CREATION FAILED ===');
+    console.error('Error caught:', error);
+    console.error('Error type:', typeof error);
+    
+    // Safely access error properties
     if (error instanceof Error) {
-      throw error;
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    } else {
+      console.error('Error (not Error instance):', String(error));
     }
-    throw new Error('Unknown error occurred while fetching sensor data');
+    
+    // Try to stringify the error safely
+    try {
+      console.error('Error JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    } catch (stringifyError) {
+      console.error('Could not stringify error:', stringifyError);
+    }
+    
+    return null;
   }
 };
 
-// Function to get the latest sensor readings count for each time range
-export const getDataPointsCount = async (timeRange: TimeRange): Promise<number> => {
+// Simple test function that just tries to connect
+export const testConnection = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    if (!supabase) {
-      throw new Error(`Supabase client not initialized: ${initializationError || 'Unknown error'}`);
+    console.log('=== CONNECTION TEST START ===');
+    
+    // First, just test if we can import and access the library
+    console.log('Testing Supabase library availability...');
+    console.log('createClient function type:', typeof createClient);
+    
+    if (typeof createClient !== 'function') {
+      return { success: false, message: 'Supabase createClient is not a function - library import failed' };
+    }
+    
+    // Now try to create the client
+    console.log('Attempting to create client...');
+    const client = createSupabaseClient();
+    if (!client) {
+      return { success: false, message: 'Failed to create client - check console for detailed error logs' };
+    }
+
+    console.log('Client created successfully, testing database connection...');
+    
+    // Try the simplest possible query
+    const { count, error } = await client
+      .from('sensor_data')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.log('Database query error:', error.message);
+      return { success: false, message: `Database error: ${error.message}` };
+    }
+
+    console.log('Connection test successful, found', count, 'records');
+    console.log('=== CONNECTION TEST END ===');
+    return { success: true, message: `Connected successfully - ${count} records found` };
+  } catch (error) {
+    console.error('=== CONNECTION TEST EXCEPTION ===');
+    console.error('Test exception:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { 
+      success: false, 
+      message: `Connection test failed: ${errorMessage}` 
+    };
+  }
+};
+
+// Simple data fetch function
+export const fetchSensorData = async (timeRange: TimeRange): Promise<{ data: SensorDataRecord[]; error: string | null }> => {
+  try {
+    console.log(`Fetching data for ${timeRange}...`);
+    
+    const client = createSupabaseClient();
+    if (!client) {
+      return { data: [], error: 'Failed to create client' };
     }
 
     const now = new Date();
@@ -187,25 +155,24 @@ export const getDataPointsCount = async (timeRange: TimeRange): Promise<number> 
         startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     }
 
-    console.log(`Counting sensor data for ${timeRange} from ${startDate.toISOString()}`);
-
-    const { count, error } = await supabase
+    const { data, error } = await client
       .from('sensor_data')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startDate.toISOString());
+      .select('*')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error getting data count:', error);
-      throw new Error(`Count error: ${error.message}`);
+      console.error('Data fetch error:', error);
+      return { data: [], error: error.message };
     }
 
-    console.log(`Data count for ${timeRange}: ${count || 0}`);
-    return count || 0;
+    console.log(`Successfully fetched ${data?.length || 0} records`);
+    return { data: data || [], error: null };
   } catch (error) {
-    console.error('Error in getDataPointsCount:', error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error('Unknown error occurred while counting sensor data');
+    console.error('Data fetch exception:', error);
+    return { 
+      data: [], 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  Alert,
+  FlatList,
 } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
 import { Colors } from '../constants/Colors';
+import { HorizontalChart } from '../components/HorizontalChart';
 
-// Import Supabase functions with safer approach - MINIMAL VERSION
-import { type SensorDataRecord, type TimeRange } from '../utils/supabaseConfig';
+// Import safe Supabase functions
+import { testConnection, fetchSensorData, type SensorDataRecord, type TimeRange } from '../utils/supabaseConfig';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -33,7 +33,7 @@ export const PlottingScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [dataPointsCount, setDataPointsCount] = useState<number>(0);
-  const [connectionStatus, setConnectionStatus] = useState<string>('Testing...');
+  const [connectionStatus, setConnectionStatus] = useState<string>('Not Connected');
 
   // Sensor options for plotting (matching your database schema)
   const sensorOptions = [
@@ -54,219 +54,193 @@ export const PlottingScreen: React.FC = () => {
     { key: 'month', label: 'This Month' },
   ];
 
-  // Load data when component mounts or time range/sensor changes - DISABLED FOR DEBUGGING
+  // Initialize with safe defaults and auto-connect
   useEffect(() => {
-    try {
-      // loadSensorData();
-      console.log('PlottingScreen mounted, data loading disabled for debugging');
-    } catch (error) {
-      console.error('Error in useEffect loadSensorData:', error);
-      setError('Failed to initialize data loading');
-    }
-  }, [selectedTimeRange]);
-
-  // Test connection on mount - RE-ENABLED WITH BETTER ERROR HANDLING
-  useEffect(() => {
-    const initializeConnection = async () => {
-      try {
-        console.log('Testing Supabase connection...');
-        setConnectionStatus('� Testing...');
-        
-        // Add a small delay to ensure component is mounted
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const isConnected = await testSupabaseConnection();
-        setConnectionStatus(isConnected ? '✅ Connected' : '❌ Disconnected');
-        
-        if (!isConnected) {
-          setError('Database connection failed. Data plotting may not work.');
-        }
-      } catch (error) {
-        console.error('Connection test error:', error);
-        setConnectionStatus('❌ Connection Error');
-        setError(`Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    };
-    
-    initializeConnection();
+    console.log('PlottingScreen mounted successfully');
+    // Auto-connect when component mounts
+    handleTestConnection();
   }, []);
 
-  const testConnection = async () => {
+  // Load data when sensor or time range changes
+  useEffect(() => {
+    if (connectionStatus === 'Connected') {
+      loadSensorData();
+    }
+  }, [selectedTimeRange, selectedSensor, connectionStatus]);
+
+  const handleTestConnection = async () => {
     try {
-      setConnectionStatus('🔄 Testing...');
+      setConnectionStatus('Testing...');
       setError('');
+      setIsLoading(true);
+
+      const result = await testConnection();
       
-      // Test network first
-      console.log('Testing network connectivity...');
-      const hasNetwork = await testNetworkConnectivity();
-      if (!hasNetwork) {
-        setConnectionStatus('❌ No Network');
-        setError('No internet connection detected. Please check your network settings.');
-        return;
-      }
-      
-      // Test Supabase connection
-      console.log('Testing Supabase connection...');
-      const isConnected = await testSupabaseConnection();
-      if (isConnected) {
-        setConnectionStatus('✅ Connected');
+      if (result.success) {
+        setConnectionStatus('Connected');
         setError('');
+        // Automatically load data after successful connection
+        loadSensorData();
       } else {
-        setConnectionStatus('❌ DB Failed');
-        setError('Database connection failed. Please check if your Supabase instance is running.');
+        setConnectionStatus('Failed');
+        setError(result.message);
       }
     } catch (error) {
-      setConnectionStatus('❌ Error');
-      setError(`Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      console.error('Connection test error:', error);
-    }
-  };
-
-  const loadSensorData = async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      // DISABLE SUPABASE CALLS FOR DEBUGGING
-      /*
-      // Load data and count separately to handle partial failures
-      let data: SensorDataRecord[] = [];
-      let count: number = 0;
-
-      try {
-        data = await getSensorData(selectedTimeRange);
-      } catch (dataError) {
-        console.error('Error loading sensor data:', dataError);
-        setError('Failed to load sensor data. Please check your internet connection.');
-        return;
-      }
-
-      try {
-        count = await getDataPointsCount(selectedTimeRange);
-      } catch (countError) {
-        console.warn('Error loading data count:', countError);
-        // Continue with count = 0, this is not critical
-      }
-      
-      setSensorData(data);
-      setDataPointsCount(count);
-      */
-      
-      // Mock data for testing
-      setSensorData([]);
-      setDataPointsCount(0);
-      setError('Supabase disabled for debugging');
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load sensor data';
-      setError(errorMessage);
-      console.error('Error loading sensor data:', err);
+      setConnectionStatus('Error');
+      setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const prepareChartData = (): ChartData => {
+  const loadSensorData = async () => {
     try {
-      if (sensorData.length === 0) {
-        return {
-          labels: ['No Data'],
-          datasets: [{ data: [0] }],
-        };
-      }
+      setIsLoading(true);
+      setError('');
 
-      // Filter out null values and prepare data
-      const validData = sensorData
-        .map(record => {
-          let value: number | null = null;
-          
-          // Safely access the sensor value
-          try {
-            const sensorValue = record[selectedSensor as keyof SensorDataRecord];
-            if (typeof sensorValue === 'number') {
-              value = sensorValue;
-            } else if (typeof sensorValue === 'boolean') {
-              value = sensorValue ? 1 : 0; // Convert boolean to number for water_level
-            }
-          } catch (error) {
-            console.warn('Error accessing sensor value:', error);
-          }
-          
-          return {
-            time: new Date(record.created_at),
-            value: value,
-          };
-        })
-        .filter(item => item.value !== null && item.value !== undefined);
-
-      if (validData.length === 0) {
-        return {
-          labels: ['No Data'],
-          datasets: [{ data: [0] }],
-        };
-      }
-
-      // Create labels based on time range
-      const labels = validData.map(item => {
-        const time = item.time;
-        if (selectedTimeRange === 'day') {
-          return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        } else if (selectedTimeRange === 'week') {
-          return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        } else {
-          return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
+      console.log(`Loading ${selectedSensor} data for ${selectedTimeRange}...`);
+      
+      // Add a small delay to see if the crash happens immediately
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const result = await fetchSensorData(selectedTimeRange);
+      
+      console.log('Fetch result:', { 
+        hasError: !!result.error, 
+        dataLength: result.data?.length || 0,
+        error: result.error 
       });
-
-      const selectedSensorOption = sensorOptions.find(option => option.key === selectedSensor);
-      const sensorColor = selectedSensorOption?.color || Colors.primary;
-
-      return {
-        labels,
-        datasets: [{
-          data: validData.map(item => item.value as number),
-          color: (opacity = 1) => sensorColor,
-          strokeWidth: 2,
-        }],
-      };
+      
+      if (result.error) {
+        setError(`Data fetch error: ${result.error}`);
+        setSensorData([]);
+        setDataPointsCount(0);
+      } else {
+        // Filter out records where the selected sensor value is null
+        const validData = result.data.filter(record => {
+          const value = record[selectedSensor as keyof SensorDataRecord];
+          return value !== null && value !== undefined;
+        });
+        
+        console.log(`Filtered ${validData.length} valid records from ${result.data.length} total`);
+        
+        setSensorData(validData);
+        setDataPointsCount(validData.length);
+        setError('');
+        console.log(`Successfully loaded ${validData.length} valid data points`);
+      }
     } catch (error) {
-      console.error('Error preparing chart data:', error);
-      return {
-        labels: ['Error'],
-        datasets: [{ data: [0] }],
-      };
+      console.error('Load data error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to load data: ${errorMessage}`);
+      setSensorData([]);
+      setDataPointsCount(0);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const chartData = prepareChartData();
   const selectedSensorOption = sensorOptions.find(option => option.key === selectedSensor);
 
-  // Add crash protection
-  try {
-    return (
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Sensor Data Plotting</Text>
-          <Text style={styles.subtitle}>Historical data visualization</Text>
-        </View>
+  const prepareChartData = useMemo((): ChartData => {
+    if (sensorData.length === 0) {
+      return {
+        labels: ['No Data'],
+        datasets: [{ data: [0] }],
+      };
+    }
 
-        {/* Time Range Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Time Range</Text>
-          <View style={styles.buttonRow}>
-            {timeRangeOptions.map((option) => (
+    // Sample data points for performance (max 10 points for bar chart)
+    const maxPoints = 10;
+    const step = Math.ceil(sensorData.length / maxPoints);
+    const sampledData = sensorData.filter((_, index) => index % step === 0);
+
+    const labels = sampledData.map(record => {
+      const date = new Date(record.created_at);
+      if (selectedTimeRange === 'day') {
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      } else if (selectedTimeRange === 'week') {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+    });
+
+    const values = sampledData.map(record => {
+      const value = record[selectedSensor as keyof SensorDataRecord];
+      
+      // Handle water_level boolean
+      if (selectedSensor === 'water_level') {
+        return value ? 1 : 0;
+      }
+      
+      return typeof value === 'number' ? value : 0;
+    });
+
+    const selectedColor = selectedSensorOption?.color || Colors.primary;
+
+    return {
+      labels,
+      datasets: [{
+        data: values,
+        color: (opacity = 1) => selectedColor,
+        strokeWidth: 2,
+      }],
+    };
+  }, [sensorData, selectedTimeRange, selectedSensor, selectedSensorOption]);
+
+  const chartData = prepareChartData;
+
+  return (
+    <ScrollView style={styles.container} nestedScrollEnabled={false}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Sensor Data Visualization</Text>
+      </View>
+
+      {/* Time Range Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Time Range</Text>
+        <View style={styles.buttonRow}>
+          {timeRangeOptions.map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={[
+                styles.toggleButton,
+                selectedTimeRange === option.key && styles.toggleButtonActive,
+              ]}
+              onPress={() => setSelectedTimeRange(option.key)}
+            >
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  selectedTimeRange === option.key && styles.toggleButtonTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Sensor Selection */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Sensor Type</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.sensorRow}>
+            {sensorOptions.map((option) => (
               <TouchableOpacity
                 key={option.key}
                 style={[
-                  styles.toggleButton,
-                  selectedTimeRange === option.key && styles.toggleButtonActive,
+                  styles.sensorButton,
+                  selectedSensor === option.key && { backgroundColor: option.color },
                 ]}
-                onPress={() => setSelectedTimeRange(option.key)}
+                onPress={() => setSelectedSensor(option.key)}
               >
                 <Text
                   style={[
-                    styles.toggleButtonText,
-                    selectedTimeRange === option.key && styles.toggleButtonTextActive,
+                    styles.sensorButtonText,
+                    selectedSensor === option.key && styles.sensorButtonTextActive,
                   ]}
                 >
                   {option.label}
@@ -274,99 +248,74 @@ export const PlottingScreen: React.FC = () => {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-
-        {/* Sensor Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sensor Type</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.sensorRow}>
-              {sensorOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[
-                    styles.sensorButton,
-                    selectedSensor === option.key && { backgroundColor: option.color },
-                  ]}
-                  onPress={() => setSelectedSensor(option.key)}
-                >
-                  <Text
-                    style={[
-                      styles.sensorButtonText,
-                      selectedSensor === option.key && styles.sensorButtonTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
+        </ScrollView>
+      </View>
 
       {/* Data Info */}
       <View style={styles.dataInfo}>
         <Text style={styles.dataInfoText}>
-          📊 {dataPointsCount} data points • {selectedSensorOption?.label || 'Unknown Sensor'}
+          {dataPointsCount} data points • {selectedSensorOption?.label || 'Unknown Sensor'}
         </Text>
-        <View style={styles.connectionContainer}>
-          <Text style={styles.connectionStatus}>{connectionStatus}</Text>
-          <TouchableOpacity style={styles.testButton} onPress={testConnection}>
-            <Text style={styles.testButtonText}>Test</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.connectionStatus}>{connectionStatus}</Text>
         {isLoading && <ActivityIndicator size="small" color={Colors.primary} />}
-      </View>        {/* Error Display */}
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>⚠️ {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={testConnection}>
-              <Text style={styles.retryButtonText}>Test Connection</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+      </View>
 
-        {/* Chart Display - TEMPORARILY DISABLED FOR DEBUGGING */}
-        {!isLoading && !error && (
-          <View style={styles.chartContainer}>
-            <View style={styles.noDataContainer}>
-              <Text style={styles.noDataText}>📊 Chart Temporarily Disabled</Text>
-              <Text style={styles.noDataSubtext}>
-                Testing without LineChart component - Data Points: {chartData.datasets[0].data.length}
-              </Text>
-              <Text style={styles.noDataSubtext}>
-                Valid Data: {chartData.datasets[0].data.some(d => d > 0) ? 'Yes' : 'No'}
-              </Text>
+      {/* Chart Section */}
+      <View style={styles.chartContainer}>
+        {sensorData.length > 0 && !isLoading ? (
+          <View>
+            {/* Custom chart using React Native Views */}
+            <HorizontalChart 
+              data={chartData} 
+              selectedSensorOption={selectedSensorOption}
+              selectedTimeRange={selectedTimeRange}
+              timeRangeOptions={timeRangeOptions}
+            />
+            
+            {/* Keep data preview below chart */}
+            <View style={styles.dataList}>
+              <Text style={styles.dataListTitle}>Recent Data (Last 5 readings):</Text>
+              {sensorData.slice(-5).map((record, index) => (
+                <Text key={index} style={styles.dataRow}>
+                  {new Date(record.created_at).toLocaleString()}: {
+                    selectedSensor === 'water_level' 
+                      ? (record[selectedSensor as keyof SensorDataRecord] ? 'High' : 'Low')
+                      : record[selectedSensor as keyof SensorDataRecord]
+                  }
+                </Text>
+              ))}
             </View>
           </View>
-        )}
-
-        {/* Loading State */}
-        {isLoading && (
-          <View style={styles.loadingContainer}>
+        ) : sensorData.length === 0 && !isLoading ? (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No Data Available</Text>
+            <Text style={styles.noDataSubtext}>
+              No {selectedSensorOption?.label.toLowerCase()} data found for the selected time range
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.noDataContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Loading sensor data...</Text>
+            <Text style={styles.noDataText}>Loading Data...</Text>
           </View>
         )}
-      </ScrollView>
-    );
-  } catch (renderError) {
-    console.error('Render error in PlottingScreen:', renderError);
-    return (
-      <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>⚠️ App Error: {renderError instanceof Error ? renderError.message : 'Unknown error'}</Text>
-          <Text style={styles.errorText}>Please restart the app</Text>
-        </View>
       </View>
-    );
-  }
+
+      {/* Loading State */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading sensor data...</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   header: {
     padding: 20,
@@ -460,22 +409,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 10,
   },
-  connectionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  testButton: {
-    marginLeft: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 4,
-  },
-  testButtonText: {
-    color: Colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '600',
-  },
   errorContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
@@ -490,26 +423,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 10,
   },
-  retryButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,69,58,0.2)',
-    borderRadius: 6,
-  },
-  retryButtonText: {
-    color: '#FF453A',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   chartContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
-  },
-  chart: {
-    marginVertical: 8,
-    borderRadius: 16,
   },
   noDataContainer: {
     width: screenWidth - 40,
@@ -540,5 +457,137 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 16,
     marginTop: 10,
+  },
+  testSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  testButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    minWidth: 150,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  controlsSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  actionButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    minWidth: 180,
+    alignItems: 'center',
+  },
+  connectButton: {
+    backgroundColor: Colors.primary,
+  },
+  loadDataButton: {
+    backgroundColor: Colors.good,
+  },
+  actionButtonText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  dataPreview: {
+    fontSize: 16,
+    color: Colors.warning,
+    textAlign: 'center',
+    marginBottom: 15,
+    fontWeight: '600',
+  },
+  dataList: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    padding: 15,
+    width: screenWidth - 40,
+  },
+  dataListTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  dataRow: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 5,
+    fontFamily: 'monospace',
+  },
+  customChart: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    width: screenWidth - 40,
+  },
+  yAxisContainer: {
+    position: 'absolute',
+    left: 5,
+    top: 40,
+    height: 140,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    width: 30,
+  },
+  yAxisLabel: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+  },
+  chartArea: {
+    marginLeft: 35,
+    marginTop: 10,
+  },
+  barsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 140,
+    paddingHorizontal: 10,
+  },
+  barColumn: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    minWidth: 40,
+  },
+  bar: {
+    width: 20,
+    borderRadius: 2,
+    marginBottom: 5,
+  },
+  barLabel: {
+    fontSize: 9,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 5,
+    transform: [{ rotate: '-45deg' }],
+  },
+  barValue: {
+    fontSize: 10,
+    color: Colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 2,
   },
 });

@@ -15,7 +15,7 @@ import {Colors} from './src/constants/Colors';
 import {getSensorStatus, getECStatus} from './src/utils/sensorUtils';
 import {StatusIndicator} from './src/components/StatusIndicator';
 import {DashboardScreen} from './src/screens/DashboardScreen';
-import {PlottingScreen} from './src/screens/PlottingScreenClean';
+import {PlottingScreen} from './src/screens/PlottingScreen';
 import {SettingsScreen} from './src/screens/SettingsScreen';
 import {API_CONFIG, getApiUrl, getCommonFetchOptions} from './src/utils/apiConfig';
 
