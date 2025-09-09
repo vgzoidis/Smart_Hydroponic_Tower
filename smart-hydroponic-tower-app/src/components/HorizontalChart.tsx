@@ -33,7 +33,7 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
   timeRangeOptions
 }) => {
   const chartWidth = screenWidth - 60;
-  const chartHeight = 200; // Slightly increased to accommodate labels
+  const chartHeight = 250; // Increased to accommodate better spacing
   const values = data.datasets[0].data;
   const labels = data.labels;
   
@@ -75,7 +75,7 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.key}
           renderItem={({ item }) => {
-            const barHeight = ((item.value - minValue) / range) * (chartHeight - 100); // Better ratio for bar height
+            const barHeight = ((item.value - minValue) / range) * 150; // Increased bar scaling area
             return (
               <View style={styles.barColumn}>
                 {/* Value on top of bar */}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 15,
-    paddingBottom: 10, // Reduced bottom padding
+    paddingBottom: 5, // Reduced bottom padding
     marginBottom: 15,
     width: screenWidth - 40,
   },
@@ -133,8 +133,8 @@ const styles = StyleSheet.create({
   yAxisContainer: {
     position: 'absolute',
     left: 5,
-    top: 45, // Adjusted back to original position
-    height: 100, // Smaller to match bars
+    top: 75, // Fine-tuned to align perfectly with bar area
+    height: 150, // Match the bar height area exactly
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     width: 30,
@@ -150,15 +150,15 @@ const styles = StyleSheet.create({
   },
   barsContainer: {
     alignItems: 'flex-end',
-    height: 140, // Back to reasonable height
-    paddingHorizontal: 10, // Normal padding
-    paddingTop: 20, // Reasonable top padding
-    paddingBottom: 10, // Reduced bottom padding
+    height: 220, // Much bigger container to fill screen
+    paddingHorizontal: 5, // Reduced padding to bring bars closer
+    paddingTop: 60, // More top padding for value labels to prevent cutoff
+    paddingBottom: 20, // Bottom padding for time labels
   },
   barColumn: {
     alignItems: 'center',
-    marginHorizontal: 8, // Normal spacing
-    minWidth: 40, // Normal width
+    marginHorizontal: 3, // Much closer spacing
+    minWidth: 30, // Narrower columns for closer bars
     height: '100%',
     justifyContent: 'flex-end', // Align bars to bottom
   },
@@ -168,22 +168,24 @@ const styles = StyleSheet.create({
     marginVertical: 3, // Small margin
   },
   barLabel: {
-    fontSize: 9, // Normal font size
+    fontSize: 8, // Smaller font for closer spacing
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8, // More margin to push labels down
-    transform: [{ rotate: '-45deg' }], // Back to normal rotation
-    height: 25, // More height for rotated text
-    width: 40, // More width for rotated text
-    overflow: 'visible', // Ensure text isn't clipped
+    marginTop: 5, // Less margin
+    transform: [{ rotate: '-45deg' }], 
+    height: 20, // Smaller height
+    width: 30, // Narrower width for closer spacing
+    overflow: 'visible',
   },
   barValue: {
-    fontSize: 10, // Normal font size
+    fontSize: 10, // Slightly larger for better visibility
     color: Colors.text,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 4,
-    height: 16,
-    minWidth: 30,
+    marginBottom: 4, // More space from bar
+    height: 25, // Increased height for visibility to prevent cutoff
+    minWidth: 25, // Smaller width for closer spacing
+    overflow: 'visible', // Ensure text isn't clipped
+    paddingTop: 2, // Small padding to center text vertically
   },
 });

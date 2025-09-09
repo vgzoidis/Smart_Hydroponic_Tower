@@ -158,7 +158,7 @@ export const PlottingScreen: React.FC = () => {
     const labels = sampledData.map(record => {
       const date = new Date(record.created_at);
       if (selectedTimeRange === 'day') {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
       } else if (selectedTimeRange === 'week') {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       } else {
@@ -192,7 +192,7 @@ export const PlottingScreen: React.FC = () => {
   const chartData = prepareChartData;
 
   return (
-    <ScrollView style={styles.container} nestedScrollEnabled={false}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Sensor Data Visualization</Text>
       </View>
@@ -271,20 +271,6 @@ export const PlottingScreen: React.FC = () => {
               selectedTimeRange={selectedTimeRange}
               timeRangeOptions={timeRangeOptions}
             />
-            
-            {/* Keep data preview below chart */}
-            <View style={styles.dataList}>
-              <Text style={styles.dataListTitle}>Recent Data (Last 5 readings):</Text>
-              {sensorData.slice(-5).map((record, index) => (
-                <Text key={index} style={styles.dataRow}>
-                  {new Date(record.created_at).toLocaleString()}: {
-                    selectedSensor === 'water_level' 
-                      ? (record[selectedSensor as keyof SensorDataRecord] ? 'High' : 'Low')
-                      : record[selectedSensor as keyof SensorDataRecord]
-                  }
-                </Text>
-              ))}
-            </View>
           </View>
         ) : sensorData.length === 0 && !isLoading ? (
           <View style={styles.noDataContainer}>
@@ -308,7 +294,7 @@ export const PlottingScreen: React.FC = () => {
           <Text style={styles.loadingText}>Loading sensor data...</Text>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 };
 
@@ -424,6 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chartContainer: {
+    flex: 1, // Take up remaining space
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
