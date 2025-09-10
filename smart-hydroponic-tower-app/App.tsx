@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, memo} from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -38,7 +38,7 @@ function App(): JSX.Element {
   });
 
   // Function to fetch sensor data from the server
-  const fetchSensorData = async () => {
+  const fetchSensorData = useCallback(async () => {
     try {
       // Create a timeout promise
       const timeoutPromise = new Promise((_, reject) =>
@@ -58,17 +58,26 @@ function App(): JSX.Element {
       
       const data = await response.json();
       
-      // Map the server response to our app's data structure
-      setSensorData({
-        waterTemp: data.waterTemp || 0,
-        waterPH: data.phLevel || 0,
-        ecLevel: data.ecLevel || 0,
-        waterLevel: data.waterLevel || false,
-        pumpStatus: data.pumpStatus || false, // Now using server data
-        envTemp: data.envTemp || 0,
-        humidity: data.envHum || 0,
-        lightLevel: data.lightLevel || 0,
-        co2Level: data.CO2 || 0,
+      // Only update state if data has actually changed to reduce re-renders
+      setSensorData(prev => {
+        const newData = {
+          waterTemp: data.waterTemp || 0,
+          waterPH: data.phLevel || 0,
+          ecLevel: data.ecLevel || 0,
+          waterLevel: data.waterLevel || false,
+          pumpStatus: data.pumpStatus || false,
+          envTemp: data.envTemp || 0,
+          humidity: data.envHum || 0,
+          lightLevel: data.lightLevel || 0,
+          co2Level: data.CO2 || 0,
+        };
+        
+        // Check if data has actually changed
+        if (JSON.stringify(prev) === JSON.stringify(newData)) {
+          return prev; // Return previous state to prevent re-render
+        }
+        
+        return newData;
       });
       
       setConnectionError(false);
@@ -98,10 +107,10 @@ function App(): JSX.Element {
       setConnectionError(true);
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Function to toggle pump state
-  const togglePump = async () => {
+  const togglePump = useCallback(async () => {
     try {
       const response = await fetch(
         getApiUrl(API_CONFIG.ENDPOINTS.PUMP_TOGGLE),
@@ -124,7 +133,7 @@ function App(): JSX.Element {
     } catch (error) {
       console.error('Error toggling pump:', error);
     }
-  };
+  }, []);
 
   // Set up interval to fetch data every second
   useEffect(() => {
@@ -136,7 +145,7 @@ function App(): JSX.Element {
     
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
-  }, []); // Empty dependency array to run only once on mount
+  }, [fetchSensorData]); // Add fetchSensorData to dependency array
 
   // Sensor data simulation (fallback - removed)
 
@@ -165,17 +174,24 @@ function App(): JSX.Element {
     ? 'warning'
     : 'good';
 
-  const TabButton = ({tab, iconName}: {tab: string; iconName: string}) => (
+  // Memoized tab change handler to prevent recreating the function on every render
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
+
+  // Memoized TabButton component to prevent unnecessary re-renders
+  const TabButton = memo(({tab, iconName}: {tab: string; iconName: string}) => (
     <TouchableOpacity
       style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-      onPress={() => setActiveTab(tab)}>
+      onPress={() => handleTabChange(tab)}
+      activeOpacity={0.7}>
       <Feather
         name={iconName}
         size={24}
         color={activeTab === tab ? '#FFFFFF' : 'rgba(255,255,255,0.7)'}
       />
     </TouchableOpacity>
-  );
+  ));
 
   return (
     <LinearGradient
@@ -305,9 +321,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0)',
     marginHorizontal: 2,
     borderRadius: 8,
+    // Add these for better touch responsiveness
+    minHeight: 56,
+    overflow: 'hidden',
   },
   activeTabButton: {
     backgroundColor: 'rgba(56,178,172,0.3)',

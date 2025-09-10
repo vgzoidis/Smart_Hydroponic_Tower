@@ -220,18 +220,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    minHeight: 350,
+    minHeight: 400, // Increased to allow tower extension
   },
   tower: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-  position: 'relative',
-  overflow: 'hidden', // clip water droplets to tower area
+    position: 'relative',
+    // Removed overflow hidden to allow tower extension
   },
   mainTowerSegment: {
     position: 'absolute',
     width: 50,
-    height: 480,
+    height: 520, // Extended height to reach water panel
     backgroundColor: Colors.tower,
     borderRadius: 4,
     shadowColor: '#000',

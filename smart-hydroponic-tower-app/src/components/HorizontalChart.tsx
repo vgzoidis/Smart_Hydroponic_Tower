@@ -24,18 +24,36 @@ interface HorizontalChartProps {
   selectedSensorOption: any;
   selectedTimeRange: string;
   timeRangeOptions: any[];
+  selectedSensor: string;
 }
 
 export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
   data,
   selectedSensorOption,
   selectedTimeRange,
-  timeRangeOptions
+  timeRangeOptions,
+  selectedSensor
 }) => {
   const chartWidth = screenWidth - 60;
   const chartHeight = 250; // Increased to accommodate better spacing
   const values = data.datasets[0].data;
   const labels = data.labels;
+  
+  // Helper function to get decimal places for different sensors
+  const getDecimalPlaces = (sensorType: string): number => {
+    switch (sensorType) {
+      case 'ph_level':
+      case 'ec_level':
+        return 2;
+      case 'light_level':
+      case 'co2_level':
+        return 0;
+      default:
+        return 1;
+    }
+  };
+
+  const decimalPlaces = getDecimalPlaces(selectedSensor);
   
   if (values.length === 0 || values.every(v => v === 0)) {
     return (
@@ -57,9 +75,9 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
       
       {/* Y-axis labels */}
       <View style={styles.yAxisContainer}>
-        <Text style={styles.yAxisLabel}>{maxValue.toFixed(1)}</Text>
-        <Text style={styles.yAxisLabel}>{((maxValue + minValue) / 2).toFixed(1)}</Text>
-        <Text style={styles.yAxisLabel}>{minValue.toFixed(1)}</Text>
+        <Text style={styles.yAxisLabel}>{maxValue.toFixed(decimalPlaces)}</Text>
+        <Text style={styles.yAxisLabel}>{((maxValue + minValue) / 2).toFixed(decimalPlaces)}</Text>
+        <Text style={styles.yAxisLabel}>{minValue.toFixed(decimalPlaces)}</Text>
       </View>
       
       {/* Chart area */}
@@ -79,7 +97,7 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
             return (
               <View style={styles.barColumn}>
                 {/* Value on top of bar */}
-                <Text style={styles.barValue}>{item.value.toFixed(1)}</Text>
+                <Text style={styles.barValue}>{item.value.toFixed(decimalPlaces)}</Text>
                 <View 
                   style={[
                     styles.bar, 
@@ -134,7 +152,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 5,
     top: 75, // Fine-tuned to align perfectly with bar area
-    height: 150, // Match the bar height area exactly
+    height: 170, // Match the bar height area exactly
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     width: 30,

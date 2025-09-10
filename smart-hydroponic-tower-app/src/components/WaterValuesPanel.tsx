@@ -30,12 +30,8 @@ export const WaterValuesPanel: React.FC<WaterValuesPanelProps> = ({
   ecStatus,
 }) => (
   <LinearGradient
-    colors={
-      sensorData.waterLevel 
-        ? ['#3B82F6', '#1E40AF', '#0EA5E9'] // Normal level colors
-        : ['#1E40AF', '#0EA5E9', '#3B82F6'] // Low level - darker blues
-    }
-    style={styles.waterValuesPanel} // Keep same size always
+    colors={['#1E40AF', '#0EA5E9', '#3B82F6']}
+    style={[styles.waterValuesPanel, styles.gradientBackground]} // Keep same size always
     start={{x: 0, y: 0}}
     end={{x: 1, y: 1}}>
     
@@ -94,18 +90,19 @@ export const WaterValuesPanel: React.FC<WaterValuesPanelProps> = ({
 const styles = StyleSheet.create({
   waterValuesPanel: {
     marginHorizontal: 100,
-    marginTop: -15,
-    borderRadius: 10,
-    padding: 6,
-    borderWidth: 2,
+    marginTop: -10, // Slight overlap with extended tower shaft to eliminate black line
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.9)',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
-  minHeight: 74, // 5% taller than before
+    minHeight: 74, // 5% taller than before
     height: 'auto',
+    overflow: 'hidden', // Ensure no gaps at corners
   },
   gridContainer: {
     flex: 1,
@@ -141,17 +138,17 @@ const styles = StyleSheet.create({
   },
   waterLevelIndicator: {
     position: 'absolute',
-    bottom: 2,
-    left: 2,
-    right: 2,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 8,
+    borderRadius: 0,
   },
   normalLevel: {
     height: '80%', // Normal water level
   },
   lowLevel: {
-    height: '25%', // Low water level visual
-    backgroundColor: 'rgba(255,150,150,0.4)', // Slightly red tint for low level
+    height: '30%', // Low water level visual
+    backgroundColor: 'rgba(255,255,255,0.3)', // Slightly white tint for low level
   },
 });

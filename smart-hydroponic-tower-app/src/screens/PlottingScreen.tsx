@@ -44,7 +44,6 @@ export const PlottingScreen: React.FC = () => {
     { key: 'humidity', label: 'Humidity (%)', color: Colors.critical },
     { key: 'light_level', label: 'Light Level (lux)', color: '#FFD700' },
     { key: 'co2_level', label: 'CO₂ Level (ppm)', color: '#FF6B6B' },
-    { key: 'water_level', label: 'Water Level', color: '#00CED1' },
   ];
 
   // Time range options
@@ -116,13 +115,47 @@ export const PlottingScreen: React.FC = () => {
         setSensorData([]);
         setDataPointsCount(0);
       } else {
-        // Filter out records where the selected sensor value is null
+        // Filter out records where the selected sensor value is null, undefined, or invalid
         const validData = result.data.filter(record => {
           const value = record[selectedSensor as keyof SensorDataRecord];
-          return value !== null && value !== undefined;
+          
+          // Handle different sensor types differently
+          if (selectedSensor === 'ec_level') {
+            // For EC level, treat values > 0 as valid (0 might be a placeholder)
+            return value !== null && value !== undefined && typeof value === 'number' && value > 0;
+          } else {
+            // For other sensors, any non-null numeric value is valid
+            return value !== null && value !== undefined && typeof value === 'number';
+          }
         });
         
         console.log(`Filtered ${validData.length} valid records from ${result.data.length} total`);
+        console.log(`Selected sensor: ${selectedSensor}`);
+        
+        // Debug: Log detailed info about the filtering
+        if (result.data.length > 0) {
+          const sampleRecord = result.data[0];
+          console.log(`Sample record for ${selectedSensor}:`, sampleRecord[selectedSensor as keyof SensorDataRecord]);
+          console.log('Available fields in record:', Object.keys(sampleRecord));
+          
+          // Count how many records have different value types for this sensor
+          const nullCount = result.data.filter(record => {
+            const value = record[selectedSensor as keyof SensorDataRecord];
+            return value === null || value === undefined;
+          }).length;
+          
+          const zeroCount = result.data.filter(record => {
+            const value = record[selectedSensor as keyof SensorDataRecord];
+            return value === 0;
+          }).length;
+          
+          const validCount = result.data.filter(record => {
+            const value = record[selectedSensor as keyof SensorDataRecord];
+            return value !== null && value !== undefined && typeof value === 'number' && value > 0;
+          }).length;
+          
+          console.log(`${selectedSensor} - Null/undefined: ${nullCount}, Zero values: ${zeroCount}, Valid (>0): ${validCount}, Total: ${result.data.length}`);
+        }
         
         setSensorData(validData);
         setDataPointsCount(validData.length);
@@ -141,6 +174,68 @@ export const PlottingScreen: React.FC = () => {
   };
 
   const selectedSensorOption = sensorOptions.find(option => option.key === selectedSensor);
+
+  // Helper function to get decimal places for different sensors
+  const getDecimalPlaces = (sensorType: string): number => {
+    switch (sensorType) {
+      case 'ph_level':
+      case 'ec_level':
+        return 2;
+      case 'light_level':
+      case 'co2_level':
+        return 0;
+      default:
+        return 1;
+    }
+  };
+
+  // Calculate statistics for the data info panel
+  const calculateStatistics = useMemo(() => {
+    if (sensorData.length === 0) {
+      return { count: 0, average: 0, min: 0, max: 0, unit: '' };
+    }
+
+    const values = sensorData.map(record => {
+      const value = record[selectedSensor as keyof SensorDataRecord];
+      return typeof value === 'number' ? value : 0;
+    }).filter(value => value !== null && value !== undefined);
+
+    if (values.length === 0) {
+      return { count: 0, average: 0, min: 0, max: 0, unit: '' };
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+
+    // Get unit based on sensor type
+    let unit = '';
+    switch (selectedSensor) {
+      case 'water_temp':
+      case 'env_temp':
+        unit = '°C';
+        break;
+      case 'ph_level':
+        unit = 'pH';
+        break;
+      case 'ec_level':
+        unit = 'mS/cm';
+        break;
+      case 'humidity':
+        unit = '%';
+        break;
+      case 'light_level':
+        unit = 'lux';
+        break;
+      case 'co2_level':
+        unit = 'ppm';
+        break;
+      default:
+        unit = '';
+    }
+
+    return { count: values.length, average, min, max, unit };
+  }, [sensorData, selectedSensor]);
 
   const prepareChartData = useMemo((): ChartData => {
     if (sensorData.length === 0) {
@@ -168,12 +263,6 @@ export const PlottingScreen: React.FC = () => {
 
     const values = sampledData.map(record => {
       const value = record[selectedSensor as keyof SensorDataRecord];
-      
-      // Handle water_level boolean
-      if (selectedSensor === 'water_level') {
-        return value ? 1 : 0;
-      }
-      
       return typeof value === 'number' ? value : 0;
     });
 
@@ -193,54 +282,28 @@ export const PlottingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Sensor Data Visualization</Text>
-      </View>
-
-      {/* Time Range Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Time Range</Text>
-        <View style={styles.buttonRow}>
-          {timeRangeOptions.map((option) => (
-            <TouchableOpacity
-              key={option.key}
-              style={[
-                styles.toggleButton,
-                selectedTimeRange === option.key && styles.toggleButtonActive,
-              ]}
-              onPress={() => setSelectedTimeRange(option.key)}
-            >
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  selectedTimeRange === option.key && styles.toggleButtonTextActive,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <View style={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Sensor Data Visualization</Text>
         </View>
-      </View>
 
-      {/* Sensor Selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sensor Type</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.sensorRow}>
-            {sensorOptions.map((option) => (
+        {/* Time Range Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Time Range</Text>
+          <View style={styles.buttonRow}>
+            {timeRangeOptions.map((option) => (
               <TouchableOpacity
                 key={option.key}
                 style={[
-                  styles.sensorButton,
-                  selectedSensor === option.key && { backgroundColor: option.color },
+                  styles.toggleButton,
+                  selectedTimeRange === option.key && styles.toggleButtonActive,
                 ]}
-                onPress={() => setSelectedSensor(option.key)}
+                onPress={() => setSelectedTimeRange(option.key)}
               >
                 <Text
                   style={[
-                    styles.sensorButtonText,
-                    selectedSensor === option.key && styles.sensorButtonTextActive,
+                    styles.toggleButtonText,
+                    selectedTimeRange === option.key && styles.toggleButtonTextActive,
                   ]}
                 >
                   {option.label}
@@ -248,52 +311,71 @@ export const PlottingScreen: React.FC = () => {
               </TouchableOpacity>
             ))}
           </View>
-        </ScrollView>
-      </View>
-
-      {/* Data Info */}
-      <View style={styles.dataInfo}>
-        <Text style={styles.dataInfoText}>
-          {dataPointsCount} data points • {selectedSensorOption?.label || 'Unknown Sensor'}
-        </Text>
-        <Text style={styles.connectionStatus}>{connectionStatus}</Text>
-        {isLoading && <ActivityIndicator size="small" color={Colors.primary} />}
-      </View>
-
-      {/* Chart Section */}
-      <View style={styles.chartContainer}>
-        {sensorData.length > 0 && !isLoading ? (
-          <View>
-            {/* Custom chart using React Native Views */}
-            <HorizontalChart 
-              data={chartData} 
-              selectedSensorOption={selectedSensorOption}
-              selectedTimeRange={selectedTimeRange}
-              timeRangeOptions={timeRangeOptions}
-            />
-          </View>
-        ) : sensorData.length === 0 && !isLoading ? (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No Data Available</Text>
-            <Text style={styles.noDataSubtext}>
-              No {selectedSensorOption?.label.toLowerCase()} data found for the selected time range
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.noDataContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.noDataText}>Loading Data...</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Loading State */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading sensor data...</Text>
         </View>
-      )}
+
+        {/* Sensor Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sensor Type</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.sensorRow}>
+              {sensorOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.sensorButton,
+                    selectedSensor === option.key && { backgroundColor: option.color },
+                  ]}
+                  onPress={() => setSelectedSensor(option.key)}
+                >
+                  <Text
+                    style={[
+                      styles.sensorButtonText,
+                      selectedSensor === option.key && styles.sensorButtonTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Chart Section */}
+        <View style={styles.chartContainer}>
+          {sensorData.length > 0 && !isLoading ? (
+            <View>
+              {/* Custom chart using React Native Views */}
+              <HorizontalChart 
+                data={chartData} 
+                selectedSensorOption={selectedSensorOption}
+                selectedTimeRange={selectedTimeRange}
+                timeRangeOptions={timeRangeOptions}
+                selectedSensor={selectedSensor}
+              />
+            </View>
+          ) : sensorData.length === 0 && !isLoading ? (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>- No Data Available -</Text>
+            </View>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.noDataText}>Loading Data...</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Data Info Panel - Fixed at bottom */}
+      <View style={styles.dataInfoFixed}>
+        <Text style={styles.dataInfoText}>
+          {calculateStatistics.count > 0 
+            ? `Average: ${calculateStatistics.average.toFixed(getDecimalPlaces(selectedSensor))}${calculateStatistics.unit} | Range: ${calculateStatistics.min.toFixed(getDecimalPlaces(selectedSensor))}-${calculateStatistics.max.toFixed(getDecimalPlaces(selectedSensor))} | ${calculateStatistics.count} data points`
+            : `${calculateStatistics.count} data points`
+          }
+        </Text>
+      </View>
     </View>
   );
 };
@@ -302,6 +384,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  scrollContent: {
+    flex: 1,
   },
   header: {
     padding: 20,
@@ -379,21 +464,58 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 0,
     paddingVertical: 10,
     paddingHorizontal: 15,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 8,
   },
   dataInfoText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    flex: 1,
+    color: Colors.text,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   connectionStatus: {
     color: Colors.textSecondary,
     fontSize: 12,
     marginLeft: 10,
+  },
+  dataInfoFixed: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 5,
+    backgroundColor: 'transparent',
+  },
+  dataInfoRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dataPointsText: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  debugInfo: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,165,0,0.1)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,165,0,0.3)',
+  },
+  debugText: {
+    color: '#FFA500',
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   errorContainer: {
     marginHorizontal: 20,
@@ -417,7 +539,7 @@ const styles = StyleSheet.create({
   },
   noDataContainer: {
     width: screenWidth - 40,
-    height: 220,
+    height: 200, // Reduced to match chart container
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     alignItems: 'center',
