@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 242, 255, 0.2)',
+    backgroundColor: 'rgba(0, 242, 255, 0.3)',
     borderRadius: 0,
   },
   normalLevel: {
@@ -149,6 +149,6 @@ const styles = StyleSheet.create({
   },
   lowLevel: {
     height: '35%', // Low water level visual
-    backgroundColor: 'rgba(0, 242, 255, 0.2)',
+    backgroundColor: 'rgba(0, 242, 255, 0.3)',
   },
 });
