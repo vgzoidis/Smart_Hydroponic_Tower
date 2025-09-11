@@ -53,7 +53,7 @@ void initDisplay() {
 
 void drawSensorStatus() {
   // Get all status colors at the start (EDIT THESE FOR YOUR SENSOR RANGES)
-  uint16_t waterTempColor  = getStatusColor(currentSensors.waterTemp, 18, 22, 25, 15, 28, 12);
+  uint16_t waterTempColor  = getStatusColor(currentSensors.waterTemp, 18, 22, 15, 25, 12, 28);
   uint16_t phColor         = getStatusColor(currentSensors.waterPH, 5.5, 6.5, 5, 7, 4, 8);
   uint16_t waterECColor    = getStatusColor(currentSensors.waterEC, 1.2, 2.0, 0.8, 2.5, 0.5, 3.0);
   uint16_t waterLevelColor = getStatusColor(currentSensors.waterLevel);
