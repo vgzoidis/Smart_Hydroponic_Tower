@@ -30,7 +30,7 @@ export const WaterValuesPanel: React.FC<WaterValuesPanelProps> = ({
   ecStatus,
 }) => (
   <LinearGradient
-    colors={['#1E40AF', '#0EA5E9', '#3B82F6']}
+    colors={['#08206cff', '#0c6a96ff', '#0e4db4ff']}
     style={[styles.waterValuesPanel, styles.gradientBackground]} // Keep same size always
     start={{x: 0, y: 0}}
     end={{x: 1, y: 1}}>
@@ -141,14 +141,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0, 242, 255, 0.2)',
     borderRadius: 0,
   },
   normalLevel: {
-    height: '80%', // Normal water level
+    height: '85%', // Normal water level
   },
   lowLevel: {
-    height: '30%', // Low water level visual
-    backgroundColor: 'rgba(255,255,255,0.3)', // Slightly white tint for low level
+    height: '35%', // Low water level visual
+    backgroundColor: 'rgba(0, 242, 255, 0.2)',
   },
 });

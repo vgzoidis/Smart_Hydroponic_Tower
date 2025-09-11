@@ -12,7 +12,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 // Import organized components and utilities
 import {Colors} from './src/constants/Colors';
-import {getSensorStatus, getECStatus} from './src/utils/sensorUtils';
+import {getSensorStatus} from './src/utils/sensorUtils';
 import {StatusIndicator} from './src/components/StatusIndicator';
 import {DashboardScreen} from './src/screens/DashboardScreen';
 import {PlottingScreen} from './src/screens/PlottingScreen';
@@ -150,13 +150,13 @@ function App(): JSX.Element {
   // Sensor data simulation (fallback - removed)
 
   // Calculate statuses
-  const waterTempStatus = getSensorStatus(sensorData.waterTemp, 18, 25);
-  const phStatus = getSensorStatus(sensorData.waterPH, 5.5, 7.0);
-  const ecStatus = getECStatus(sensorData.ecLevel);
-  const tempStatus = getSensorStatus(sensorData.envTemp, 20, 26);
-  const humidityStatus = getSensorStatus(sensorData.humidity, 40, 60);
-  const lightStatus = getSensorStatus(sensorData.lightLevel, 150, 300);
-  const co2Status = getSensorStatus(sensorData.co2Level, 400, 1000);
+  const waterTempStatus = getSensorStatus(sensorData.waterTemp, 15, 25);
+  const phStatus = getSensorStatus(sensorData.waterPH, 5.0, 7.0);
+  const ecStatus = getSensorStatus(sensorData.ecLevel, 0.8, 2.5);
+  const tempStatus = getSensorStatus(sensorData.envTemp, 13, 30);
+  const humidityStatus = getSensorStatus(sensorData.humidity, 35, 85);
+  const lightStatus = getSensorStatus(sensorData.lightLevel, 10, 40000);
+  const co2Status = getSensorStatus(sensorData.co2Level, 200, 1800);
 
   // Overall system status
   const allStatuses = [
@@ -232,7 +232,7 @@ function App(): JSX.Element {
                     ? '#FFA500'
                     : connectionError
                     ? '#FF4444'
-                    : '#00FF00',
+                    : '#269900ff',
                 },
               ]}
             />
