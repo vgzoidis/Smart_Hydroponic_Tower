@@ -47,10 +47,27 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
         return 2;
       case 'light_level':
       case 'co2_level':
+      case 'water_level':
         return 0;
       default:
         return 1;
     }
+  };
+
+  // Helper function to format water level values
+  const formatWaterLevelValue = (value: number): string => {
+    if (selectedSensor === 'water_level') {
+      return value >= 0.5 ? 'High' : 'Low';
+    }
+    return value.toFixed(getDecimalPlaces(selectedSensor));
+  };
+
+  // Helper function to format Y-axis labels for water level
+  const formatYAxisLabel = (value: number): string => {
+    if (selectedSensor === 'water_level') {
+      return value >= 0.5 ? 'High' : 'Low';
+    }
+    return value.toFixed(getDecimalPlaces(selectedSensor));
   };
 
   const decimalPlaces = getDecimalPlaces(selectedSensor);
@@ -75,9 +92,9 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
       
       {/* Y-axis labels */}
       <View style={styles.yAxisContainer}>
-        <Text style={styles.yAxisLabel}>{maxValue.toFixed(decimalPlaces)}</Text>
-        <Text style={styles.yAxisLabel}>{((maxValue + minValue) / 2).toFixed(decimalPlaces)}</Text>
-        <Text style={styles.yAxisLabel}>{minValue.toFixed(decimalPlaces)}</Text>
+        <Text style={styles.yAxisLabel}>{formatYAxisLabel(maxValue)}</Text>
+        <Text style={styles.yAxisLabel}>{formatYAxisLabel((maxValue + minValue) / 2)}</Text>
+        <Text style={styles.yAxisLabel}>{formatYAxisLabel(minValue)}</Text>
       </View>
       
       {/* Chart area */}
@@ -97,7 +114,7 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
             return (
               <View style={styles.barColumn}>
                 {/* Value on top of bar */}
-                <Text style={styles.barValue}>{item.value.toFixed(decimalPlaces)}</Text>
+                <Text style={styles.barValue}>{formatWaterLevelValue(item.value)}</Text>
                 <View 
                   style={[
                     styles.bar, 

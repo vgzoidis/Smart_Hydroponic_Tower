@@ -297,7 +297,6 @@ export const SettingsScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching pump status:', error);
-      setErrorMessage('Failed to fetch pump status. Please check connection.');
     }
   };
 
@@ -410,7 +409,6 @@ export const SettingsScreen: React.FC = () => {
       
     } catch (error) {
       console.error('Error fetching pH status:', error);
-      setErrorMessage('Failed to fetch pH status. Please check connection.');
     }
   };
 

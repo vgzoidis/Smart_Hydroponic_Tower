@@ -30,20 +30,23 @@ export const PlottingScreen: React.FC = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('day');
   const [selectedSensor, setSelectedSensor] = useState<string>('water_temp');
   const [sensorData, setSensorData] = useState<SensorDataRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [error, setError] = useState<string>('');
   const [dataPointsCount, setDataPointsCount] = useState<number>(0);
   const [connectionStatus, setConnectionStatus] = useState<string>('Not Connected');
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState<boolean>(false);
+  const [initialConnectionMade, setInitialConnectionMade] = useState<boolean>(false);
 
   // Sensor options for plotting (matching your database schema)
   const sensorOptions = [
     { key: 'water_temp', label: 'Water Temp (°C)', color: Colors.primary },
     { key: 'ph_level', label: 'pH Level', color: Colors.good },
     { key: 'ec_level', label: 'EC Level (mS/cm)', color: Colors.warning },
-    { key: 'env_temp', label: 'Env Temp (°C)', color: Colors.accent },
-    { key: 'humidity', label: 'Humidity (%)', color: Colors.critical },
-    { key: 'light_level', label: 'Light Level (lux)', color: '#FFD700' },
-    { key: 'co2_level', label: 'CO₂ Level (ppm)', color: '#FF6B6B' },
+    { key: 'env_temp', label: 'Env Temp (°C)', color: '#00a329ff' },
+    { key: 'humidity', label: 'Humidity (%)', color: '#ff7bcaff'},
+    { key: 'light_level', label: 'Light Level (lux)', color: '#ffe031ff' },
+    { key: 'co2_level', label: 'CO₂ Level (ppm)', color: '#c7c7c7ff' },
+    { key: 'water_level', label: 'Water Level', color: '#0047caff' },
   ];
 
   // Time range options
@@ -62,7 +65,8 @@ export const PlottingScreen: React.FC = () => {
 
   // Load data when sensor or time range changes
   useEffect(() => {
-    if (connectionStatus === 'Connected') {
+    if (connectionStatus === 'Connected' && initialConnectionMade) {
+      setHasAttemptedLoad(false); // Reset the attempt flag when changing parameters
       loadSensorData();
     }
   }, [selectedTimeRange, selectedSensor, connectionStatus]);
@@ -78,17 +82,20 @@ export const PlottingScreen: React.FC = () => {
       if (result.success) {
         setConnectionStatus('Connected');
         setError('');
+        setInitialConnectionMade(true);
         // Automatically load data after successful connection
         loadSensorData();
       } else {
         setConnectionStatus('Failed');
         setError(result.message);
+        setIsLoading(false);
+        setHasAttemptedLoad(true);
       }
     } catch (error) {
       setConnectionStatus('Error');
       setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
       setIsLoading(false);
+      setHasAttemptedLoad(true);
     }
   };
 
@@ -96,6 +103,7 @@ export const PlottingScreen: React.FC = () => {
     try {
       setIsLoading(true);
       setError('');
+      setHasAttemptedLoad(true);
 
       console.log(`Loading ${selectedSensor} data for ${selectedTimeRange}...`);
       
@@ -120,7 +128,10 @@ export const PlottingScreen: React.FC = () => {
           const value = record[selectedSensor as keyof SensorDataRecord];
           
           // Handle different sensor types differently
-          if (selectedSensor === 'ec_level') {
+          if (selectedSensor === 'water_level') {
+            // For water level, boolean values are valid
+            return value !== null && value !== undefined && typeof value === 'boolean';
+          } else if (selectedSensor === 'ec_level') {
             // For EC level, treat values > 0 as valid (0 might be a placeholder)
             return value !== null && value !== undefined && typeof value === 'number' && value > 0;
           } else {
@@ -183,6 +194,7 @@ export const PlottingScreen: React.FC = () => {
         return 2;
       case 'light_level':
       case 'co2_level':
+      case 'water_level':
         return 0;
       default:
         return 1;
@@ -197,7 +209,12 @@ export const PlottingScreen: React.FC = () => {
 
     const values = sensorData.map(record => {
       const value = record[selectedSensor as keyof SensorDataRecord];
-      return typeof value === 'number' ? value : 0;
+      if (selectedSensor === 'water_level') {
+        // Convert boolean to numeric for calculations (true=1, false=0)
+        return typeof value === 'boolean' ? (value ? 1 : 0) : 0;
+      } else {
+        return typeof value === 'number' ? value : 0;
+      }
     }).filter(value => value !== null && value !== undefined);
 
     if (values.length === 0) {
@@ -230,6 +247,9 @@ export const PlottingScreen: React.FC = () => {
       case 'co2_level':
         unit = 'ppm';
         break;
+      case 'water_level':
+        unit = '';
+        break;
       default:
         unit = '';
     }
@@ -245,27 +265,195 @@ export const PlottingScreen: React.FC = () => {
       };
     }
 
-    // Sample data points for performance (max 10 points for bar chart)
-    const maxPoints = 10;
-    const step = Math.ceil(sensorData.length / maxPoints);
-    const sampledData = sensorData.filter((_, index) => index % step === 0);
+    let aggregatedData: { label: string; value: number }[] = [];
 
-    const labels = sampledData.map(record => {
-      const date = new Date(record.created_at);
-      if (selectedTimeRange === 'day') {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-      } else if (selectedTimeRange === 'week') {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (selectedTimeRange === 'day') {
+      // Today: Average data every hour for the last 24 hours
+      const now = new Date();
+      const hourlyData: { [hour: string]: number[] } = {};
+      
+      // Initialize hourly buckets for the last 24 hours
+      for (let i = 23; i >= 0; i--) {
+        const hourStart = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const hourKey = hourStart.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+        hourlyData[hourKey] = [];
       }
-    });
+      
+      // Group data by hour
+      sensorData.forEach(record => {
+        const recordDate = new Date(record.created_at);
+        const hourKey = recordDate.toISOString().slice(0, 13);
+        const value = record[selectedSensor as keyof SensorDataRecord];
+        
+        let numericValue: number;
+        if (selectedSensor === 'water_level') {
+          numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : 0;
+        } else {
+          numericValue = typeof value === 'number' ? value : 0;
+        }
+        
+        if (hourlyData[hourKey] !== undefined) {
+          hourlyData[hourKey].push(numericValue);
+        }
+      });
+      
+      // Calculate hourly averages
+      Object.keys(hourlyData).sort().forEach(hourKey => {
+        const values = hourlyData[hourKey];
+        if (values.length > 0) {
+          const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+          const hour = new Date(hourKey + ':00:00Z');
+          aggregatedData.push({
+            label: hour.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            value: average
+          });
+        }
+      });
+      
+    } else if (selectedTimeRange === 'week') {
+      // This Week: Average data every half day (AM/PM) for the last 7 days
+      const aggregationMap: { [key: string]: { values: number[], timestamp: Date } } = {};
+      
+      // Process each data record
+      sensorData.forEach(record => {
+        const recordDate = new Date(record.created_at);
+        
+        // Skip invalid dates
+        if (isNaN(recordDate.getTime())) {
+          console.warn('Invalid date in record:', record.created_at);
+          return;
+        }
+        
+        // Determine AM/PM period
+        const hour = recordDate.getHours();
+        const period = hour < 12 ? 'AM' : 'PM';
+        
+        // Create a key using the actual date from the record
+        const dateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}-${period}`;
+        
+        const value = record[selectedSensor as keyof SensorDataRecord];
+        let numericValue: number;
+        if (selectedSensor === 'water_level') {
+          numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : 0;
+        } else {
+          numericValue = typeof value === 'number' ? value : 0;
+        }
+        
+        if (!aggregationMap[dateKey]) {
+          aggregationMap[dateKey] = { values: [], timestamp: recordDate };
+        }
+        aggregationMap[dateKey].values.push(numericValue);
+      });
+      
+      // Convert to aggregated data and sort by timestamp
+      Object.keys(aggregationMap)
+        .sort()
+        .forEach(key => {
+          const { values, timestamp } = aggregationMap[key];
+          if (values.length > 0) {
+            const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const period = key.split('-')[3]; // Extract AM/PM from key
+            
+            // Format the date properly
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames[timestamp.getMonth()];
+            const day = timestamp.getDate();
+            
+            aggregatedData.push({
+              label: `${month} ${day} ${period}`,
+              value: average
+            });
+          }
+        });
+      
+    } else if (selectedTimeRange === 'month') {
+      // This Month: Average data each day for the last 30 days
+      const aggregationMap: { [key: string]: { values: number[], timestamp: Date } } = {};
+      
+      // Process each data record
+      sensorData.forEach(record => {
+        const recordDate = new Date(record.created_at);
+        
+        // Skip invalid dates
+        if (isNaN(recordDate.getTime())) {
+          console.warn('Invalid date in record:', record.created_at);
+          return;
+        }
+        
+        // Create a key using the actual date from the record
+        const dateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}`;
+        
+        const value = record[selectedSensor as keyof SensorDataRecord];
+        let numericValue: number;
+        if (selectedSensor === 'water_level') {
+          numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : 0;
+        } else {
+          numericValue = typeof value === 'number' ? value : 0;
+        }
+        
+        if (!aggregationMap[dateKey]) {
+          aggregationMap[dateKey] = { values: [], timestamp: recordDate };
+        }
+        aggregationMap[dateKey].values.push(numericValue);
+      });
+      
+      // Convert to aggregated data and sort by timestamp
+      Object.keys(aggregationMap)
+        .sort()
+        .forEach(key => {
+          const { values, timestamp } = aggregationMap[key];
+          if (values.length > 0) {
+            const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            
+            // Format the date properly
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames[timestamp.getMonth()];
+            const day = timestamp.getDate();
+            
+            aggregatedData.push({
+              label: `${month} ${day}`,
+              value: average
+            });
+          }
+        });
+    }
 
-    const values = sampledData.map(record => {
-      const value = record[selectedSensor as keyof SensorDataRecord];
-      return typeof value === 'number' ? value : 0;
-    });
+    // If no aggregated data, fall back to original sampling method
+    if (aggregatedData.length === 0) {
+      const maxPoints = 10;
+      const step = Math.ceil(sensorData.length / maxPoints);
+      const sampledData = sensorData.filter((_, index) => index % step === 0);
 
+      aggregatedData = sampledData.map(record => {
+        const date = new Date(record.created_at);
+        let label = '';
+        
+        if (selectedTimeRange === 'day') {
+          label = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (selectedTimeRange === 'week') {
+          const hour = date.getHours();
+          const period = hour < 12 ? 'AM' : 'PM';
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const month = monthNames[date.getMonth()];
+          const day = date.getDate();
+          label = `${month} ${day} ${period}`;
+        } else {
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const month = monthNames[date.getMonth()];
+          const day = date.getDate();
+          label = `${month} ${day}`;
+        }
+        
+        const value = record[selectedSensor as keyof SensorDataRecord];
+        return {
+          label,
+          value: typeof value === 'number' ? value : 0
+        };
+      });
+    }
+
+    const labels = aggregatedData.map(item => item.label);
+    const values = aggregatedData.map(item => item.value);
     const selectedColor = selectedSensorOption?.color || Colors.primary;
 
     return {
@@ -343,7 +531,14 @@ export const PlottingScreen: React.FC = () => {
 
         {/* Chart Section */}
         <View style={styles.chartContainer}>
-          {sensorData.length > 0 && !isLoading ? (
+          {isLoading ? (
+            <View style={styles.noDataContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.noDataText}>
+                {connectionStatus === 'Testing...' ? 'Connecting...' : 'Loading Data...'}
+              </Text>
+            </View>
+          ) : sensorData.length > 0 ? (
             <View>
               {/* Custom chart using React Native Views */}
               <HorizontalChart 
@@ -354,14 +549,24 @@ export const PlottingScreen: React.FC = () => {
                 selectedSensor={selectedSensor}
               />
             </View>
-          ) : sensorData.length === 0 && !isLoading ? (
+          ) : hasAttemptedLoad && initialConnectionMade ? (
             <View style={styles.noDataContainer}>
               <Text style={styles.noDataText}>- No Data Available -</Text>
+              <Text style={styles.noDataSubtext}>
+                No {selectedSensorOption?.label.toLowerCase()} data found for the selected time range
+              </Text>
+            </View>
+          ) : connectionStatus === 'Failed' || connectionStatus === 'Error' ? (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>- Connection Failed -</Text>
+              <Text style={styles.noDataSubtext}>
+                {error || 'Unable to connect to database'}
+              </Text>
             </View>
           ) : (
             <View style={styles.noDataContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.noDataText}>Loading Data...</Text>
+              <Text style={styles.noDataText}>Initializing...</Text>
             </View>
           )}
         </View>
@@ -371,7 +576,9 @@ export const PlottingScreen: React.FC = () => {
       <View style={styles.dataInfoFixed}>
         <Text style={styles.dataInfoText}>
           {calculateStatistics.count > 0 
-            ? `Average: ${calculateStatistics.average.toFixed(getDecimalPlaces(selectedSensor))}${calculateStatistics.unit} | Range: ${calculateStatistics.min.toFixed(getDecimalPlaces(selectedSensor))}-${calculateStatistics.max.toFixed(getDecimalPlaces(selectedSensor))} | ${calculateStatistics.count} data points`
+            ? selectedSensor === 'water_level'
+              ? `Average: ${calculateStatistics.average >= 0.5 ? 'High' : 'Low'} | Range: ${calculateStatistics.min >= 0.5 ? 'HIGH' : 'LOW'}-${calculateStatistics.max >= 0.5 ? 'HIGH' : 'LOW'} | ${calculateStatistics.count} data points`
+              : `Average: ${calculateStatistics.average.toFixed(getDecimalPlaces(selectedSensor))}${calculateStatistics.unit} | Range: ${calculateStatistics.min.toFixed(getDecimalPlaces(selectedSensor))}-${calculateStatistics.max.toFixed(getDecimalPlaces(selectedSensor))} | ${calculateStatistics.count} data points`
             : `${calculateStatistics.count} data points`
           }
         </Text>
