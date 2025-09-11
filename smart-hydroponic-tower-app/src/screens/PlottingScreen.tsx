@@ -58,7 +58,6 @@ export const PlottingScreen: React.FC = () => {
 
   // Initialize with safe defaults and auto-connect
   useEffect(() => {
-    console.log('PlottingScreen mounted successfully');
     // Auto-connect when component mounts
     handleTestConnection();
   }, []);
@@ -104,19 +103,11 @@ export const PlottingScreen: React.FC = () => {
       setIsLoading(true);
       setError('');
       setHasAttemptedLoad(true);
-
-      console.log(`Loading ${selectedSensor} data for ${selectedTimeRange}...`);
       
       // Add a small delay to see if the crash happens immediately
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const result = await fetchSensorData(selectedTimeRange);
-      
-      console.log('Fetch result:', { 
-        hasError: !!result.error, 
-        dataLength: result.data?.length || 0,
-        error: result.error 
-      });
       
       if (result.error) {
         setError(`Data fetch error: ${result.error}`);
@@ -140,38 +131,9 @@ export const PlottingScreen: React.FC = () => {
           }
         });
         
-        console.log(`Filtered ${validData.length} valid records from ${result.data.length} total`);
-        console.log(`Selected sensor: ${selectedSensor}`);
-        
-        // Debug: Log detailed info about the filtering
-        if (result.data.length > 0) {
-          const sampleRecord = result.data[0];
-          console.log(`Sample record for ${selectedSensor}:`, sampleRecord[selectedSensor as keyof SensorDataRecord]);
-          console.log('Available fields in record:', Object.keys(sampleRecord));
-          
-          // Count how many records have different value types for this sensor
-          const nullCount = result.data.filter(record => {
-            const value = record[selectedSensor as keyof SensorDataRecord];
-            return value === null || value === undefined;
-          }).length;
-          
-          const zeroCount = result.data.filter(record => {
-            const value = record[selectedSensor as keyof SensorDataRecord];
-            return value === 0;
-          }).length;
-          
-          const validCount = result.data.filter(record => {
-            const value = record[selectedSensor as keyof SensorDataRecord];
-            return value !== null && value !== undefined && typeof value === 'number' && value > 0;
-          }).length;
-          
-          console.log(`${selectedSensor} - Null/undefined: ${nullCount}, Zero values: ${zeroCount}, Valid (>0): ${validCount}, Total: ${result.data.length}`);
-        }
-        
         setSensorData(validData);
         setDataPointsCount(validData.length);
         setError('');
-        console.log(`Successfully loaded ${validData.length} valid data points`);
       }
     } catch (error) {
       console.error('Load data error:', error);

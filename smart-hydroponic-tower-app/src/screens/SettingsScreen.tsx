@@ -378,7 +378,6 @@ export const SettingsScreen: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log('Pump toggle response:', data);
       
       // Refresh pump status to get the latest state
       await fetchPumpStatus();

@@ -82,28 +82,8 @@ function App(): JSX.Element {
       
       setConnectionError(false);
       setIsLoading(false);
-      
-      console.log('Sensor data updated successfully:', data);
     } catch (error) {
       console.error('Error fetching sensor data:', error);
-      
-      // Type-safe error handling
-      const errorDetails = error instanceof Error ? {
-        message: error.message,
-        type: error.constructor.name,
-        stack: error.stack
-      } : {
-        message: String(error),
-        type: 'Unknown',
-        stack: 'N/A'
-      };
-      
-      console.error('Error details:', errorDetails);
-      
-      // Show detailed error in console for debugging
-      const errorMsg = `Failed to connect to ESP32 at ${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SENSORS}\n\nError: ${errorDetails.message}\nType: ${errorDetails.type}`;
-      console.log('DETAILED ERROR:', errorMsg);
-      
       setConnectionError(true);
       setIsLoading(false);
     }
@@ -122,7 +102,6 @@ function App(): JSX.Element {
       }
       
       const data = await response.json();
-      console.log('Pump toggle response:', data);
       
       // Update local state immediately for better UX
       setSensorData(prev => ({
@@ -146,8 +125,6 @@ function App(): JSX.Element {
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
   }, [fetchSensorData]); // Add fetchSensorData to dependency array
-
-  // Sensor data simulation (fallback - removed)
 
   // Calculate statuses
   const waterTempStatus = getSensorStatus(sensorData.waterTemp, 15, 25);

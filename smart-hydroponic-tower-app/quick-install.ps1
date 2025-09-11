@@ -6,6 +6,11 @@
 #   .\quick-install.ps1 -Fast    # Skip uninstall (faster)
 #   .\quick-install.ps1 -Clean   # Clean build from scratch
 
+param(
+    [switch]$Fast = $false,
+    [switch]$Clean = $false
+)
+
 Write-Host "🌱 Smart Hydroponic Tower - Quick Install" -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Green
 
@@ -27,12 +32,7 @@ if ($devices -match "device$") {
     exit 1
 }
 
-# Check if we need a clean build (optional parameter)
-param(
-    [switch]$Clean = $false,
-    [switch]$Fast = $false
-)
-
+# Check if we need a clean build
 if ($Clean) {
     Write-Host "`n🧹 Cleaning build cache..." -ForegroundColor Yellow
     .\android\gradlew -p android clean
@@ -97,23 +97,16 @@ $installResult = adb install -r $apkPath  # -r flag for reinstall/replace
 
 if ($installResult -match "Success") {
     Write-Host "✅ Dashboard installed!" -ForegroundColor Green
-    
+
     Write-Host "`n🎉 Installation Complete!" -ForegroundColor Green
     Write-Host "📦 Size: $sizeMB MB" -ForegroundColor White
-    Write-Host "✨ Features: Dashboard UI, Color-coded Sensors, Tower View" -ForegroundColor Cyan
-    
+
     # Wait a moment then open app
     Write-Host "`n🚀 Opening app on device..." -ForegroundColor Green
     Start-Sleep -Seconds 1
     adb shell am start -n com.smarthydroponictowerapp/.MainActivity
-    
-    Write-Host "`n💡 Speed up future installs:" -ForegroundColor Yellow
-    Write-Host "   .\quick-install.ps1 -Fast    (Skip uninstall/clear data)" -ForegroundColor Gray
-    Write-Host "   .\quick-install.ps1 -Clean   (Full clean build)" -ForegroundColor Gray
 } else {
     Write-Host "❌ Installation failed: $installResult" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
 }
 
 
