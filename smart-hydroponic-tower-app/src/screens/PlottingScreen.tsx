@@ -192,7 +192,12 @@ export const PlottingScreen: React.FC = () => {
 
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+    let average = values.reduce((sum, val) => sum + val, 0) / values.length;
+    
+    // For water level, convert average to binary (0 or 1)
+    if (selectedSensor === 'water_level') {
+      average = average < 0.5 ? 0 : 1;
+    }
 
     // Get unit based on sensor type
     let unit = '';
@@ -271,7 +276,13 @@ export const PlottingScreen: React.FC = () => {
       Object.keys(hourlyData).sort().forEach(hourKey => {
         const values = hourlyData[hourKey];
         if (values.length > 0) {
-          const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+          let average = values.reduce((sum, val) => sum + val, 0) / values.length;
+          
+          // For water level, convert average to binary (0 or 1)
+          if (selectedSensor === 'water_level') {
+            average = average < 0.5 ? 0 : 1;
+          }
+          
           const hour = new Date(hourKey + ':00:00Z');
           aggregatedData.push({
             label: getHourLabel(hour),
@@ -322,7 +333,12 @@ export const PlottingScreen: React.FC = () => {
         .forEach(key => {
           const { values, timestamp } = aggregationMap[key];
           if (values.length > 0) {
-            const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            let average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            
+            // For water level, convert average to binary (0 or 1)
+            if (selectedSensor === 'water_level') {
+              average = average < 0.5 ? 0 : 1;
+            }
             
             aggregatedData.push({
               label: getDateLabel(timestamp, true), // Include AM/PM
@@ -369,7 +385,12 @@ export const PlottingScreen: React.FC = () => {
         .forEach(key => {
           const { values, timestamp } = aggregationMap[key];
           if (values.length > 0) {
-            const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            let average = values.reduce((sum, val) => sum + val, 0) / values.length;
+            
+            // For water level, convert average to binary (0 or 1)
+            if (selectedSensor === 'water_level') {
+              average = average < 0.5 ? 0 : 1;
+            }
             
             aggregatedData.push({
               label: getDateLabel(timestamp), // Just date without time
@@ -399,9 +420,16 @@ export const PlottingScreen: React.FC = () => {
         }
         
         const value = record[selectedSensor as keyof SensorDataRecord];
+        let numericValue: number;
+        if (selectedSensor === 'water_level') {
+          numericValue = typeof value === 'boolean' ? (value ? 1 : 0) : 0;
+        } else {
+          numericValue = typeof value === 'number' ? value : 0;
+        }
+        
         return {
           label,
-          value: typeof value === 'number' ? value : 0
+          value: numericValue
         };
       });
     }

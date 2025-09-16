@@ -72,7 +72,7 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
 
   const decimalPlaces = getDecimalPlaces(selectedSensor);
   
-  if (values.length === 0 || values.every(v => v === 0)) {
+  if (values.length === 0) {
     return (
       <View style={[styles.customChart, { height: chartHeight }]}>
         <Text style={styles.noDataText}>No chart data available</Text>
@@ -82,7 +82,18 @@ export const HorizontalChart: React.FC<HorizontalChartProps> = React.memo(({
 
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
-  const range = maxValue - minValue || 1;
+  // Handle the case where all values are the same (including all zeros)
+  // For water level, ensure we have a proper range for binary display
+  let range = maxValue - minValue;
+  if (range === 0) {
+    if (selectedSensor === 'water_level') {
+      // For water level binary values, set a fixed range of 1
+      range = 1;
+    } else {
+      // For other sensors with zero values, set a small range to make bars visible
+      range = Math.max(maxValue * 0.1, 1);
+    }
+  }
   
   return (
     <View style={styles.customChart}>
