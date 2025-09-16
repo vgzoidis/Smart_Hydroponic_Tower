@@ -76,28 +76,38 @@ export const fetchSensorData = async (timeRange: TimeRange): Promise<{ data: Sen
       return { data: [], error: 'Failed to create client' };
     }
 
+    // Get current time - since database timestamps are already in local EET/EEST,
+    // we don't need to adjust for timezone offset in our queries
     const now = new Date();
     let startDate: Date;
+    let limit: number;
 
     switch (timeRange) {
       case 'day':
         startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        limit = 500; // ~288 expected points for 24 hours at 5-min intervals
         break;
       case 'week':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        limit = 3000; // Increased further to ensure we get all week data
         break;
       case 'month':
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        limit = 10000; // Very high limit to ensure we get all data since Aug 28
         break;
       default:
         startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        limit = 500; // Default to same as 'day' case
     }
 
-    const { data, error } = await client
+    // For better performance, we can also sort by descending order and take the most recent data
+    // This ensures we get the latest data even if there's more data than our limit
+    let { data, error } = await client
       .from('sensor_data')
       .select('*')
       .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false }) // Get most recent data first
+      .limit(limit);
 
     if (error) {
       return { data: [], error: error.message };

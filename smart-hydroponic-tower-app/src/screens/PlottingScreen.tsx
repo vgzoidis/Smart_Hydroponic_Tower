@@ -15,6 +15,13 @@ import { HorizontalChart } from '../components/HorizontalChart';
 // Import safe Supabase functions
 import { testConnection, fetchSensorData, type SensorDataRecord, type TimeRange } from '../utils/supabaseConfig';
 
+// Import timezone utilities
+import { 
+  convertDbTimestampToLocalTime, 
+  getHourLabel, 
+  getDateLabel 
+} from '../utils/timezoneUtils';
+
 const screenWidth = Dimensions.get('window').width;
 
 interface ChartData {
@@ -243,8 +250,9 @@ export const PlottingScreen: React.FC = () => {
       
       // Group data by hour
       sensorData.forEach(record => {
-        const recordDate = new Date(record.created_at);
-        const hourKey = recordDate.toISOString().slice(0, 13);
+        // Convert database timestamp to correct local time
+        const localDate = convertDbTimestampToLocalTime(record.created_at);
+        const hourKey = localDate.toISOString().slice(0, 13);
         const value = record[selectedSensor as keyof SensorDataRecord];
         
         let numericValue: number;
@@ -266,7 +274,7 @@ export const PlottingScreen: React.FC = () => {
           const average = values.reduce((sum, val) => sum + val, 0) / values.length;
           const hour = new Date(hourKey + ':00:00Z');
           aggregatedData.push({
-            label: hour.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            label: getHourLabel(hour),
             value: average
           });
         }
@@ -278,20 +286,21 @@ export const PlottingScreen: React.FC = () => {
       
       // Process each data record
       sensorData.forEach(record => {
-        const recordDate = new Date(record.created_at);
+        // Convert database timestamp to correct local time
+        const localDate = convertDbTimestampToLocalTime(record.created_at);
         
         // Skip invalid dates
-        if (isNaN(recordDate.getTime())) {
+        if (isNaN(localDate.getTime())) {
           console.warn('Invalid date in record:', record.created_at);
           return;
         }
         
         // Determine AM/PM period
-        const hour = recordDate.getHours();
+        const hour = localDate.getHours();
         const period = hour < 12 ? 'AM' : 'PM';
         
         // Create a key using the actual date from the record
-        const dateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}-${period}`;
+        const dateKey = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}-${period}`;
         
         const value = record[selectedSensor as keyof SensorDataRecord];
         let numericValue: number;
@@ -302,7 +311,7 @@ export const PlottingScreen: React.FC = () => {
         }
         
         if (!aggregationMap[dateKey]) {
-          aggregationMap[dateKey] = { values: [], timestamp: recordDate };
+          aggregationMap[dateKey] = { values: [], timestamp: localDate };
         }
         aggregationMap[dateKey].values.push(numericValue);
       });
@@ -314,15 +323,9 @@ export const PlottingScreen: React.FC = () => {
           const { values, timestamp } = aggregationMap[key];
           if (values.length > 0) {
             const average = values.reduce((sum, val) => sum + val, 0) / values.length;
-            const period = key.split('-')[3]; // Extract AM/PM from key
-            
-            // Format the date properly
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = monthNames[timestamp.getMonth()];
-            const day = timestamp.getDate();
             
             aggregatedData.push({
-              label: `${month} ${day} ${period}`,
+              label: getDateLabel(timestamp, true), // Include AM/PM
               value: average
             });
           }
@@ -334,16 +337,17 @@ export const PlottingScreen: React.FC = () => {
       
       // Process each data record
       sensorData.forEach(record => {
-        const recordDate = new Date(record.created_at);
+        // Convert database timestamp to correct local time
+        const localDate = convertDbTimestampToLocalTime(record.created_at);
         
         // Skip invalid dates
-        if (isNaN(recordDate.getTime())) {
+        if (isNaN(localDate.getTime())) {
           console.warn('Invalid date in record:', record.created_at);
           return;
         }
         
         // Create a key using the actual date from the record
-        const dateKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}`;
+        const dateKey = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
         
         const value = record[selectedSensor as keyof SensorDataRecord];
         let numericValue: number;
@@ -354,7 +358,7 @@ export const PlottingScreen: React.FC = () => {
         }
         
         if (!aggregationMap[dateKey]) {
-          aggregationMap[dateKey] = { values: [], timestamp: recordDate };
+          aggregationMap[dateKey] = { values: [], timestamp: localDate };
         }
         aggregationMap[dateKey].values.push(numericValue);
       });
@@ -367,13 +371,8 @@ export const PlottingScreen: React.FC = () => {
           if (values.length > 0) {
             const average = values.reduce((sum, val) => sum + val, 0) / values.length;
             
-            // Format the date properly
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = monthNames[timestamp.getMonth()];
-            const day = timestamp.getDate();
-            
             aggregatedData.push({
-              label: `${month} ${day}`,
+              label: getDateLabel(timestamp), // Just date without time
               value: average
             });
           }
@@ -387,23 +386,16 @@ export const PlottingScreen: React.FC = () => {
       const sampledData = sensorData.filter((_, index) => index % step === 0);
 
       aggregatedData = sampledData.map(record => {
-        const date = new Date(record.created_at);
+        // Convert database timestamp to correct local time
+        const localDate = convertDbTimestampToLocalTime(record.created_at);
         let label = '';
         
         if (selectedTimeRange === 'day') {
-          label = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+          label = getHourLabel(localDate);
         } else if (selectedTimeRange === 'week') {
-          const hour = date.getHours();
-          const period = hour < 12 ? 'AM' : 'PM';
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const month = monthNames[date.getMonth()];
-          const day = date.getDate();
-          label = `${month} ${day} ${period}`;
+          label = getDateLabel(localDate, true); // Include AM/PM
         } else {
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const month = monthNames[date.getMonth()];
-          const day = date.getDate();
-          label = `${month} ${day}`;
+          label = getDateLabel(localDate); // Just date
         }
         
         const value = record[selectedSensor as keyof SensorDataRecord];

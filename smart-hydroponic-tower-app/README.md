@@ -6,10 +6,6 @@
 [![Supabase](https://img.shields.io/badge/Database-Supabase-green)](https://supabase.com/)
 [![ESP32](https://img.shields.io/badge/Hardware-ESP32-red)](https://www.espressif.com/en/products/socs/esp32)
 
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-1.0-orange)](https://github.com/vgzoidis/Smart_Hydroponic_Tower)
-
 ## Project Overview
 
 The **Smart Hydroponic Tower Mobile App** is a comprehensive React Native application designed to monitor and control an automated hydroponic growing system. This app serves as the central control hub for a smart hydroponic tower, allowing users to:
@@ -26,7 +22,7 @@ The **Smart Hydroponic Tower Mobile App** is a comprehensive React Native applic
 2. **Data-Driven Growing**: Make informed decisions based on historical trends and real-time data
 3. **Automation Control**: Set up automated watering and pH adjustment schedules
 4. **Early Problem Detection**: Get immediate alerts when conditions are outside optimal ranges
-5. **Optimal Plant Growth**: Maintain perfect growing conditions
+5. **Optimal Plant Growth**: Helps you maintain perfect growing conditions
 ---
 
 ## Features
@@ -57,17 +53,7 @@ The **Smart Hydroponic Tower Mobile App** is a comprehensive React Native applic
   - Sophisticated automated pH adjustment (cooldown for accurate mesurements)
   - Target pH and tolerance settings (to avoid oscillations)
   - Manual pH up/down controls (useful when setting up new main solution)
-- **Sensors optimal ranges overview** (static but customizable as a planned feature)
-
-### **User Interface Features**
-- **Modern gradient design** with intuitive navigation
-- **Tab-based navigation** for easy screen switching
-- **Responsive layout** optimized for mobile devices
-- **Color-coded status indicators**:
-  - 🟢 Green: Optimal conditions
-  - 🟡 Yellow: Warning conditions
-  - 🔴 Red: Critical conditions requiring attention
-
+- **Sensors optimal ranges overview** (static but customisable as a planned feature)
 ---
 
 ## Code Structure
@@ -81,7 +67,7 @@ smart-hydroponic-tower-app/
 │   │   ├── StatusIndicator.tsx      # Status indicator component
 │   │   ├── TowerVisualization.tsx   # Main tower visualization
 │   │   └── WaterValuesPanel.tsx     # Water parameters panel
-│   ├── constants/                 #Constant UI components
+│   ├── constants/                 # Constant UI components
 │   │   └── Colors.ts                # App color scheme definitions
 │   ├── screens/                   # Main app screens
 │   │   ├── DashboardScreen.tsx      # Real-time monitoring screen
@@ -90,26 +76,45 @@ smart-hydroponic-tower-app/
 │   └── utils/                     # Utility functions and configurations
 │       ├── apiConfig.ts             # ESP32 API communication config
 │       ├── sensorUtils.ts           # Sensor data processing utilities
-│       └── supabaseConfig.ts        # Database connection config
+│       ├── supabaseConfig.ts        # Database connection config
+│       └── timezoneUtils.ts         # Timezone handling utilities
 ├── android/                       # Android platform files
 ├── App.tsx                        # Main application component
 ├── index.js                       # Entry point
 ├── package.json                   # Dependencies and scripts
+├── quick-install.ps1              # PowerShell installation script
 └── README.md                      # This file
 ```
 
-### Key File Responsibilities
+### Recent Updates & Fixes
 
-- **`App.tsx`**: Main application logic, tab navigation, real-time data fetching
-- **`apiConfig.ts`**: ESP32 communication endpoints and network configuration
-- **`supabaseConfig.ts`**: Database connection for historical data storage
-- **`sensorUtils.ts`**: Sensor data validation and status calculation
-- **Screen Components**: Modular screens for different app functionalities
-- **UI Components**: Reusable components for consistent design
+#### ⭐ **Timezone Fix Implementation**
+**Problem Solved**: Database timestamps were displaying 3 hours ahead of actual recording time.
 
+**Root Cause**: Database stores timestamps as `2024-09-16T17:00:00+00:00` (marked as UTC) but they actually represent local EET/EEST time. JavaScript was interpreting them as UTC and converting to system timezone.
+
+**Solution**: New `timezoneUtils.ts` extracts UTC time components and uses them as local time components:
+```typescript
+// Before: 17:00 EET data showed as 20:00 (wrong)
+// After: 17:00 EET data shows as 17:00 (correct)
+const localDate = new Date(
+  utcDate.getUTCFullYear(),
+  utcDate.getUTCMonth(),
+  utcDate.getUTCDate(),
+  utcDate.getUTCHours(), // Correct local hour
+  utcDate.getUTCMinutes(),
+  utcDate.getUTCSeconds()
+);
+```
+
+**Files Modified**:
+- `src/utils/timezoneUtils.ts` (new file)
+- `src/screens/PlottingScreen.tsx` (updated timezone handling)
+- `src/utils/supabaseConfig.ts` (cleaned up timezone logic)
+- `TIMEZONE_FIX.md` (detailed documentation)
 ---
 
-## Dependencies & Requirements
+## Development  Dependencies & Requirements
 
 ### Core Dependencies
 ```json
@@ -129,6 +134,7 @@ smart-hydroponic-tower-app/
 - **ESLint**: Code linting and formatting
 - **Jest**: Testing framework
 - **Babel**: JavaScript compilation
+- **Metro**: React Native bundler
 
 ### System Requirements
 - **Node.js**: Version 16 or higher
@@ -137,13 +143,33 @@ smart-hydroponic-tower-app/
 - **Android SDK**: API level 23 or higher
 - **Physical Android device or emulator**
 
+### Database Schema (Supabase)
+```sql
+-- sensor_data table structure
+CREATE TABLE sensor_data (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  timestamp BIGINT,
+  co2_level NUMERIC,
+  ph_level NUMERIC,
+  water_temp NUMERIC,
+  env_temp NUMERIC,
+  humidity NUMERIC,
+  light_level NUMERIC,
+  ec_level NUMERIC,
+  water_level BOOLEAN
+);
+```
+
+**Note**: Timestamps use EET/EEST timezone but are stored with UTC markers. The app automatically handles this discrepancy.
+
 ---
 
-## Setup & Installation Guide
+## Install and Setup Guide
 
 ### Prerequisites
-1. **Install Node.js** (v16+): [Download here](https://nodejs.org/)
-2. **Install Android Studio**: [Download here](https://developer.android.com/studio)
+1. **Instal**l  [Node.js ](https://nodejs.org/) (v16 or higher)
+2. **Install** [Android Studio](https://developer.android.com/studio)
 3. **Set up Android development environment**:
    ```bash
    # Add to your PATH (Windows PowerShell)
@@ -197,81 +223,46 @@ Run the provided PowerShell script:
 .\quick-install.ps1
 ```
 
----
+### Quick Setup with Pre-built APK (Only for plots or if using default WLAN setup)
 
-## Usage Instructions
+If you want to get started quickly without building from source, you can install the pre-built APK directly on your Android device.
+
+#### System Requirements
+- **Android 6.0 (API level 23)** or higher
+- **ARM64 or ARM** processor architecture
+- **60 MB** free storage space
+- **WiFi connection** to same network as your ESP32
+
+#### Installation Steps
+
+1. **Download the APK**:
+   - Download the latest `smart-hydroponic-tower.apk` from the [Releases](https://github.com/vgzoidis/Smart_Hydroponic_Tower/releases) section
+   - Or transfer the APK file to your Android device
+
+2. **Enable Installation from Unknown Sources**:
+   ```
+   Settings → Security → Unknown Sources → Enable
+   ```
+   *Note: On newer Android versions, you'll be prompted to allow installation when you try to install the APK*
+
+3. **Install the APK**:
+   - Open your file manager and navigate to the downloaded APK
+   - Tap on the APK file and select "Install"
+   - Follow the installation prompts
+
+#### Troubleshooting APK Installation
+
+- Ensure your ESP32 and phone are on the same WiFi network
+- Check if the webpage is available from a browser
+- Verify the ESP32 IP address in the source code
 
 ### Initial Setup
 
 1. **Connect your ESP32** to the same WiFi network as your mobile device
 2. **Find your ESP32's IP address** from your router or ESP32 serial monitor
 3. **Update the IP address** in `src/utils/apiConfig.ts`
-4. **Launch the app** on your Android device
-
-### Dashboard Usage
-
-**Real-time Monitoring**:
-- View all sensor readings in real-time
-- Monitor system status with color-coded indicators
-- Check water flow animation when pump is active
-
-**Manual Control**:
-- Tap the pump button to manually start/stop water circulation
-- Emergency stop functionality available
-
-### Data Plotting Usage
-
-**Viewing Historical Data**:
-1. Tap the "Charts" tab
-2. Select time range (Day/Week/Month)
-3. Choose sensor parameter from dropdown
-4. Scroll through interactive charts
-
-**Data Analysis**:
-- Zoom and pan on charts for detailed analysis
-- Compare different time periods
-- Export data for external analysis
-
-### Settings Configuration
-
-**Pump Automation**:
-1. Navigate to Settings tab
-2. Toggle "Auto Mode" for pump
-3. Set ON time (1-180 minutes)
-4. Set OFF time (1-180 minutes)
-5. Save configuration
-
-**pH Control**:
-1. Enable pH auto mode
-2. Set target pH value (typically 5.5-6.5 for hydroponics)
-3. Configure tolerance range
-4. Monitor automatic adjustments
-
-### Example Commands & Outputs
-
-**API Endpoints Used**:
-```
-GET /sensors          # Fetch current sensor readings
-POST /pump/toggle      # Toggle pump on/off
-GET /pump/status       # Get pump configuration
-POST /ph/up           # Trigger pH UP pump
-POST /ph/down         # Trigger pH DOWN pump
-```
-
-**Sample Sensor Data Response**:
-```json
-{
-  "waterTemp": 22.5,
-  "phLevel": 6.2,
-  "ecLevel": 1.8,
-  "waterLevel": true,
-  "pumpStatus": false,
-  "envTemp": 24.1,
-  "envHum": 65.2,
-  "lightLevel": 850,
-  "CO2": 420
-}
-```
+4. **Build and Install** a version of the app with the updated IP
+5. **Launch the app** on your Android device
 
 ---
 
@@ -289,8 +280,8 @@ The app follows a **client-server architecture** with three main components:
 
 ```
 ESP32 Sensors → ESP32 WiFi → HTTP API → React Native App → Supabase Database
-                                     ↕
-                              User Interface & Controls
+                                              ↕
+                                  User Interface & Controls
 ```
 
 ### Key Algorithms & Logic
@@ -325,11 +316,32 @@ export const getSensorStatus = (value: number, min: number, max: number) => {
 };
 ```
 
-#### 3. **Chart Data Processing**
+#### 3. **Chart Data Processing with Timezone Correction**
 The app processes raw sensor data into chart-friendly format:
-- Time-based data aggregation
-- Interpolation for missing data points
-- Dynamic scaling based on data range
+```typescript
+// Timezone-corrected data processing
+const convertDbTimestampToLocalTime = (dbTimestamp: string): Date => {
+  const utcDate = new Date(dbTimestamp);
+  // Extract UTC components and use as local time
+  return new Date(
+    utcDate.getUTCFullYear(),
+    utcDate.getUTCMonth(),
+    utcDate.getUTCDate(),
+    utcDate.getUTCHours(), // Correct local hour
+    utcDate.getUTCMinutes(),
+    utcDate.getUTCSeconds()
+  );
+};
+
+// Time-based data aggregation with corrected timestamps
+const aggregatedData = sensorData.map(record => {
+  const localDate = convertDbTimestampToLocalTime(record.created_at);
+  return {
+    label: getHourLabel(localDate), // Shows correct local time
+    value: record.sensor_value
+  };
+});
+```
 
 #### 4. **Pump Control Logic**
 ```typescript
@@ -524,6 +536,15 @@ npm install
 2. Check ESP32 data logging functionality
 3. Review database table structure
 
+**Problem**: Chart timestamps showing wrong time (FIXED)**
+**Solution**: The app now includes timezone correction utilities that handle EET/EEST timestamps correctly. See `TIMEZONE_FIX.md` for details.
+
+**Problem**: Chart data not aggregating properly
+**Solutions**:
+1. Check `PlottingScreen.tsx` aggregation logic
+2. Verify database date format consistency
+3. Ensure timezone conversion is working correctly
+
 ---
 
 ## License & Credits
@@ -562,7 +583,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## Version History
 
-### Current Version: v0.0.1 (Development)
+### Current Version: v1.1 (Development - Timezone Fix Release)
 
 **Features Implemented**:
 - ✅ Real-time sensor monitoring
@@ -571,13 +592,22 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - ✅ Basic automation settings
 - ✅ pH control system
 - ✅ Connection management
+- ✅ **NEW**: Timezone correction for EET/EEST timestamps
+- ✅ **NEW**: Enhanced chart data processing
+- ✅ **NEW**: Improved time-based data aggregation
+
+**Recent Fixes (v1.1)**:
+- 🐛 **Fixed**: Chart timestamps now display correct local time (EET/EEST)
+- 🐛 **Fixed**: Database timezone handling corrected
+- 🐛 **Fixed**: Time range aggregation works properly with local timestamps
+- 📚 **Added**: Comprehensive timezone fix documentation
 
 **Current Limitations**:
 - Android only (iOS support planned)
 - Single tower support
 - Basic notification system
 
-### Planned Features (v0.1.0 - Beta Release)
+### Planned Features (v2.0 - Next Release)
 
 **Near-term Goals (Next 1-2 months)**:
 - 🔄 **iOS Support**: Complete React Native iOS build configuration
@@ -585,6 +615,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - 🔄 **Offline Mode**: Local data caching when connection is lost
 - 🔄 **Enhanced Charts**: More chart types and statistical analysis
 - 🔄 **Export Functionality**: CSV/PDF export of historical data
+- 🔄 **Multi-timezone Support**: Configurable timezone settings
 
 ### Future Roadmap (v1.0.0 - Production Release)
 
