@@ -86,27 +86,6 @@ smart-hydroponic-tower-app/
 └── README.md                      # This file
 ```
 
-### Recent Updates & Fixes
-
-#### ⭐ **Timezone Fix Implementation**
-**Problem Solved**: Database timestamps were displaying 3 hours ahead of actual recording time.
-
-**Root Cause**: Database stores timestamps as `2024-09-16T17:00:00+00:00` (marked as UTC) but they actually represent local EET/EEST time. JavaScript was interpreting them as UTC and converting to system timezone.
-
-**Solution**: New `timezoneUtils.ts` extracts UTC time components and uses them as local time components:
-```typescript
-// Before: 17:00 EET data showed as 20:00 (wrong)
-// After: 17:00 EET data shows as 17:00 (correct)
-const localDate = new Date(
-  utcDate.getUTCFullYear(),
-  utcDate.getUTCMonth(),
-  utcDate.getUTCDate(),
-  utcDate.getUTCHours(), // Correct local hour
-  utcDate.getUTCMinutes(),
-  utcDate.getUTCSeconds()
-);
-```
-
 **Files Modified**:
 - `src/utils/timezoneUtils.ts` (new file)
 - `src/screens/PlottingScreen.tsx` (updated timezone handling)
@@ -142,27 +121,6 @@ const localDate = new Date(
 - **Java Development Kit (JDK)**: Version 11 or higher
 - **Android SDK**: API level 23 or higher
 - **Physical Android device or emulator**
-
-### Database Schema (Supabase)
-```sql
--- sensor_data table structure
-CREATE TABLE sensor_data (
-  id BIGSERIAL PRIMARY KEY,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  timestamp BIGINT,
-  co2_level NUMERIC,
-  ph_level NUMERIC,
-  water_temp NUMERIC,
-  env_temp NUMERIC,
-  humidity NUMERIC,
-  light_level NUMERIC,
-  ec_level NUMERIC,
-  water_level BOOLEAN
-);
-```
-
-**Note**: Timestamps use EET/EEST timezone but are stored with UTC markers. The app automatically handles this discrepancy.
-
 ---
 
 ## Install and Setup Guide
@@ -276,6 +234,8 @@ The app follows a **client-server architecture** with three main components:
 2. **ESP32 Microcontroller** (hardware backend)
 3. **Supabase Database** (data persistence)
 
+
+
 ### Data Flow
 
 ```
@@ -283,7 +243,25 @@ ESP32 Sensors → ESP32 WiFi → HTTP API → React Native App → Supabase Data
                                               ↕
                                   User Interface & Controls
 ```
+### Database Schema (Supabase)
+```sql
+-- sensor_data table structure
+CREATE TABLE sensor_data (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  timestamp BIGINT,
+  co2_level NUMERIC,
+  ph_level NUMERIC,
+  water_temp NUMERIC,
+  env_temp NUMERIC,
+  humidity NUMERIC,
+  light_level NUMERIC,
+  ec_level NUMERIC,
+  water_level BOOLEAN
+);
+```
 
+**Note**: Timestamps use EET/EEST timezone but are stored with UTC markers. The app automatically handles this discrepancy.
 ### Key Algorithms & Logic
 
 #### 1. **Real-time Data Fetching**
@@ -356,12 +334,7 @@ const togglePump = async () => {
 };
 ```
 
-### Component Interaction
 
-1. **App.tsx** manages global state and real-time data fetching
-2. **Screen components** receive data as props and handle user interactions
-3. **Utility functions** process data and manage API communications
-4. **UI components** provide reusable interface elements
 
 ### Performance Optimizations
 
@@ -420,164 +393,40 @@ export const Colors = {
 - Chart data: On-demand with caching
 
 ---
-
-## Contributing Guide
-
-### Development Workflow
-
-1. **Fork the repository** on GitHub
-2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
-3. **Make your changes** following the code style guidelines
-4. **Test thoroughly** on physical device
-5. **Submit a pull request** with detailed description
-
-### Code Style Guidelines
-
-- **TypeScript**: Use strict typing, avoid `any`
-- **Component Structure**: Functional components with hooks
-- **Naming**: Use descriptive names, PascalCase for components
-- **File Organization**: Group related functionality
-- **Comments**: Document complex logic and API interactions
-
-### Areas for Contribution
-
-- **New sensor integrations** (soil moisture, nutrients, etc.)
-- **Enhanced data visualization** (3D charts, AR features)
-- **iOS support** (currently Android-only)
-- **Notification system** for alerts
-- **Machine learning** for growth predictions
-- **Multi-tower support** for commercial operations
-
-### Testing
-
-```bash
-# Run tests
-npm test
-
-# Run linter
-npm run lint
-
-# Type checking
-npx tsc --noEmit
-```
-
----
-
-## Troubleshooting & Common Issues
-
-### Connection Issues
-
-**Problem**: App shows "Connection Error"
-**Solutions**:
-1. Verify ESP32 and phone are on same WiFi network
-2. Check ESP32 IP address in `apiConfig.ts`
-3. Ensure ESP32 web server is running
-4. Test ESP32 endpoints in browser: `http://ESP32_IP/sensors`
-
-**Problem**: Intermittent connectivity
-**Solutions**:
-1. Increase timeout value in `apiConfig.ts`
-2. Check WiFi signal strength
-3. Restart ESP32 and router
-
-### Performance Issues
-
-**Problem**: App is slow or laggy
-**Solutions**:
-1. Close other apps to free memory
-2. Restart the React Native app
-3. Clear Metro cache: `npx react-native start --reset-cache`
-
-**Problem**: Charts not loading
-**Solutions**:
-1. Check Supabase configuration
-2. Verify internet connection
-3. Check database permissions
-
-### Build Issues
-
-**Problem**: Android build fails
-**Solutions**:
-```bash
-# Clean build
-cd android
-./gradlew clean
-cd ..
-
-# Reset Metro cache
-npx react-native start --reset-cache
-
-# Rebuild
-npm run android
-```
-
-**Problem**: Dependencies not installing
-**Solutions**:
-```bash
-# Clear npm cache
-npm cache clean --force
-
-# Remove node_modules and reinstall
-rm -rf node_modules
-npm install
-```
-
-### Data Issues
-
-**Problem**: Sensor readings appear incorrect
-**Solutions**:
-1. Check sensor calibration on ESP32
-2. Verify API response format
-3. Check sensor status thresholds in `sensorUtils.ts`
-
-**Problem**: Historical data missing
-**Solutions**:
-1. Verify Supabase connection
-2. Check ESP32 data logging functionality
-3. Review database table structure
-
-**Problem**: Chart timestamps showing wrong time (FIXED)**
-**Solution**: The app now includes timezone correction utilities that handle EET/EEST timestamps correctly. See `TIMEZONE_FIX.md` for details.
-
-**Problem**: Chart data not aggregating properly
-**Solutions**:
-1. Check `PlottingScreen.tsx` aggregation logic
-2. Verify database date format consistency
-3. Ensure timezone conversion is working correctly
-
----
-
 ## License & Credits
 
 ### License
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-### Credits
+This project is licensed under the **MIT License**.
 
-**Development Team**:
-- **Primary Developer**: [Your Name]
-- **Hardware Integration**: ESP32 Development Team
-- **Database Design**: Supabase Integration Team
+```
+MIT License
 
-**Technologies Used**:
-- **React Native**: Cross-platform mobile development
-- **Supabase**: Backend-as-a-Service for data storage
-- **ESP32**: Microcontroller platform
-- **Chart Kit**: Data visualization library
+Copyright (c) 2025 Smart Hydroponic Tower Project
 
-### Acknowledgments
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-- **React Native Community** for excellent documentation and support
-- **Supabase Team** for providing robust backend services
-- **Open Source Contributors** for various libraries used in this project
-- **Hydroponic Growing Community** for domain knowledge and requirements
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-### References
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
-- [React Native Documentation](https://reactnative.dev/docs/getting-started)
-- [Supabase Documentation](https://supabase.com/docs)
-- [ESP32 Arduino Core](https://github.com/espressif/arduino-esp32)
-- [Hydroponic Growing Guidelines](https://extension.oregonstate.edu/sites/default/files/documents/1/hydroponiclettuceproduction.pdf)
+#### Primary Developer
+- **Project Creator**: [Vasilis Zoidis / Iti Certh]
+- **GitHub**: [@vgzoidis](https://github.com/vgzoidis)
+- **Contact**: vgzoidis@ece.auth.gr
 
 ---
 
@@ -586,94 +435,18 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### Current Version: v1.1 (Development - Timezone Fix Release)
 
 **Features Implemented**:
-- ✅ Real-time sensor monitoring
-- ✅ Manual pump control
-- ✅ Historical data visualization
-- ✅ Basic automation settings
-- ✅ pH control system
-- ✅ Connection management
-- ✅ **NEW**: Timezone correction for EET/EEST timestamps
-- ✅ **NEW**: Enhanced chart data processing
-- ✅ **NEW**: Improved time-based data aggregation
+-  Real-time sensor monitoring
+-  Manual pump control
+-  Historical data visualization
+-  Basic automation settings
+-  pH control system
+-  Connection management
+-  **NEW**: Timezone correction for EET/EEST timestamps
 
-**Recent Fixes (v1.1)**:
-- 🐛 **Fixed**: Chart timestamps now display correct local time (EET/EEST)
-- 🐛 **Fixed**: Database timezone handling corrected
-- 🐛 **Fixed**: Time range aggregation works properly with local timestamps
-- 📚 **Added**: Comprehensive timezone fix documentation
-
-**Current Limitations**:
-- Android only (iOS support planned)
-- Single tower support
-- Basic notification system
-
-### Planned Features (v2.0 - Next Release)
-
-**Near-term Goals (Next 1-2 months)**:
-- 🔄 **iOS Support**: Complete React Native iOS build configuration
-- 🔄 **Push Notifications**: Real-time alerts for critical conditions
-- 🔄 **Offline Mode**: Local data caching when connection is lost
-- 🔄 **Enhanced Charts**: More chart types and statistical analysis
-- 🔄 **Export Functionality**: CSV/PDF export of historical data
-- 🔄 **Multi-timezone Support**: Configurable timezone settings
-
-### Future Roadmap (v1.0.0 - Production Release)
-
-**Medium-term Goals (3-6 months)**:
-- 🔮 **Multi-Tower Support**: Manage multiple hydroponic systems
-- 🔮 **Plant Database**: Crop-specific growing recommendations
-- 🔮 **Machine Learning**: Predictive analytics for optimal growing
-- 🔮 **Social Features**: Share growing data with community
-- 🔮 **Commercial Features**: Scalability for greenhouse operations
-
-**Long-term Vision (6+ months)**:
-- 🚀 **IoT Integration**: Support for additional sensor types
-- 🚀 **Cloud Infrastructure**: Scalable backend for enterprise use
-- 🚀 **AI Assistant**: Intelligent growing recommendations
-- 🚀 **Marketplace Integration**: Connect with suppliers and buyers
-- 🚀 **Augmented Reality**: AR visualization of plant health
-
-### Version Control
-
-**Semantic Versioning** (MAJOR.MINOR.PATCH):
-- **MAJOR**: Breaking changes to API or core functionality
-- **MINOR**: New features, backward compatible
-- **PATCH**: Bug fixes and minor improvements
-
-**Release Schedule**:
-- **Weekly**: Development builds for testing
-- **Monthly**: Feature releases with new functionality
-- **Quarterly**: Major version releases with significant updates
-
----
-
-## Getting Help
-
-### Support Channels
-
-**Documentation**: This README and inline code comments
-**Issues**: [GitHub Issues](https://github.com/vgzoidis/Smart_Hydroponic_Tower/issues)
-**Community**: Join our growing community of hydroponic enthusiasts
-
-### Reporting Bugs
-
-When reporting bugs, please include:
-1. **Device information** (Android version, device model)
-2. **App version** and build number
-3. **Steps to reproduce** the issue
-4. **Expected vs actual behavior**
-5. **Screenshots or logs** if applicable
-
-### Feature Requests
-
-We welcome feature requests! Please provide:
-1. **Use case description** - what problem does this solve?
-2. **Proposed solution** - how should it work?
-3. **Priority level** - how important is this feature?
-4. **Implementation ideas** - any technical considerations
-
----
-
-**Happy Growing! 🌱** 
-
-*Transform your hydroponic experience with data-driven automation and real-time monitoring.*
+**Future features**:
+- **iOS** support
+- **Push Notifications**: Real-time alerts for critical conditions
+- **Export Functionality**: CSV/PDF export of historical data
+-  **Configurable**: optimal variable ranges (from the settings tab)
+-  **Multi-timezone Support**: Configurable timezone settings
+- **Multiple tower Support**: Ability to manage more than one towers
