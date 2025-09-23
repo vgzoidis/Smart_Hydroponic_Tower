@@ -34,7 +34,7 @@ The Smart Hydroponic Tower is an automated hydroponic growing system designed to
 - **CO2 Level**: MH-Z19 NDIR sensor for atmospheric CO2 measurement
 
 ### Local Display Interface
-- **2.4" TFT Display**: Real-time sensor readings with color-coded status indicators
+- **2" IPS LCD Display**: Real-time sensor readings with color-coded status indicators
 - **Visual Tower Representation**: Graphical representation of the hydroponic system
 - **Status Colors**: 
   - 🟢 Green: Optimal range
@@ -96,7 +96,7 @@ Smart_Hydroponic_Tower_ESP32/
 
 ### Hardware Requirements
 - **ESP32 Development Board** (ESP32-WROOM-32 or compatible)
-- **2.4" TFT Display** (ST7789 controller, 240x320 resolution)
+- **2' IPS LCD Display** (ST7789 controller, 240x320 resolution)
 - **Sensors:**
   - DS18B20 waterproof temperature sensor
   - Analog pH sensor (with BNC connector)
