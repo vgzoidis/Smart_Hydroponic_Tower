@@ -1,63 +1,3 @@
-Type of the Paper: Article
-Title: A Low-Cost, IoT-Based Smart Hydroponic Tower for Automated Plant Growth Monitoring and Control
-Firstname Lastname 1, Firstname Lastname 2 and Firstname Lastname 2,*: Vasileios Zoidis 1,*, John Doe 2
-Academic Editor: Firstname Lastname
-Received: 17 September 2025
-Revised: date
-Accepted: date
-Published: date
-Citation: To be added by editorial staff during production.
-Copyright: © 2025 by the authors. Submitted for possible open access publication under the terms and conditions of the Creative Commons Attribution (CC BY) license (https://creativecommons.org/licenses/by/4.0/).
-1	Affiliation 1; vgzoidis@example.com
-2	Affiliation 2; e-mail@e-mail.com
-*	Correspondence: vgzoidis@example.com
-
-Abstract
-(1) Background: Traditional hydroponic systems require significant manual effort to monitor and maintain optimal growing conditions for plants. This paper presents the design and implementation of a low-cost, IoT-based Smart Hydroponic Tower that automates this process. (2) Methods: The system is built around an ESP32 microcontroller that collects data from a suite of sensors monitoring water temperature, pH, electrical conductivity (EC), water level, ambient temperature and humidity, light, and CO2 levels. The collected data is displayed on a local 2.4" TFT screen and streamed to a cloud database (Supabase). A React Native mobile application provides a user-friendly interface for remote monitoring and control of the system, including pumps for nutrient circulation and pH regulation. The webpage does the same plus has  (3) Results: The system successfully automates the monitoring and control of the hydroponic environment, providing real-time data visualization on both a local display and a remote mobile application. The automated control of pumps and pH levels ensures that plants are grown in optimal conditions, while the data logging feature allows for historical analysis and optimization of the growing process. (4) Conclusions: The Smart Hydroponic Tower provides an effective and affordable solution for automating hydroponic agriculture. The system's modular design and remote-control capabilities make it suitable for a wide range of applications, from hobbyist growers to small-scale commercial farms.
-
-Keywords: hydroponics; Internet of Things (IoT); ESP32; sensor networks; automated agriculture; smart farming; React Native; remote monitoring; environmental control
-
-1. Introduction
-Hydroponics, a method of growing plants without soil by using mineral nutrient solutions in a water solvent, has gained significant attention as a sustainable agricultural technique. It offers numerous advantages over traditional agriculture, including higher crop yields, faster growth rates, and reduced water consumption [1]. However, maintaining the optimal conditions for plant growth in a hydroponic system can be a labor-intensive process, requiring frequent monitoring of various environmental and water parameters such as pH, electrical conductivity (EC), and temperature [2].
-
-The advent of the Internet of Things (IoT) has opened up new possibilities for automating and optimizing agricultural processes [3]. By integrating sensors, microcontrollers, and wireless communication technologies, it is possible to create "smart" farming systems that can monitor and control the growing environment with minimal human intervention [4].
-
-This paper presents the design, development, and implementation of a Smart Hydroponic Tower, a low-cost, IoT-based system for automated plant growth monitoring and control. The system utilizes an ESP32 microcontroller to collect data from a comprehensive suite of sensors and control pumps for nutrient circulation and pH regulation. A local TFT display provides real-time feedback, while a mobile application allows for remote monitoring and control. The primary goal of this work is to provide a practical and accessible solution for automating hydroponic cultivation, thereby reducing manual labor and improving plant growth outcomes. The main contributions of this work are the development of an integrated hardware and software solution for hydroponic automation, including a custom PCB, an ESP32-based control unit, and a React Native mobile application for remote management.
-
-2. Materials and Methods
-The Smart Hydroponic Tower system is composed of three main parts: the physical tower and its associated hardware, the ESP32-based firmware for control and data acquisition, and a mobile application for remote monitoring and management.
-
-2.1. Hardware
-The core of the control system is an ESP32-WROOM-32 development board, chosen for its low cost, integrated Wi-Fi and Bluetooth capabilities, and extensive community support. The ESP32 interfaces with a variety of sensors to monitor the hydroponic environment:
-*   **Water Temperature:** A DS18B20 waterproof sensor measures the temperature of the nutrient solution.
-*   **pH Level:** A DFRobot SKU-SEN0161 analog pH sensor measures the acidity of the solution.
-*   **Electrical Conductivity (EC):** A DFRobot SKU-DFR0300 sensor measures the nutrient concentration.
-*   **Water Level:** A non-contact liquid level sensor (SKU-SEN0485) is used to detect the water level in the reservoir and prevent the pumps from running dry.
-*   **Ambient Temperature and Humidity:** A DHT22 sensor monitors the environmental conditions around the tower.
-*   **Light Level:** A BH1750 digital light sensor measures the ambient light intensity.
-*   **CO2 Level:** An MH-Z19B NDIR sensor measures the concentration of carbon dioxide in the air.
-
-A 2.4" ST7789 TFT display is used to provide a local user interface, showing real-time sensor readings and system status. The system controls three peristaltic pumps: one for circulating the nutrient solution and two for dispensing pH up/down solutions to maintain the desired pH level. A custom-designed Printed Circuit Board (PCB) was created to provide a compact and reliable solution for connecting all the components (Figure 1).
-
-2.2. ESP32 Firmware
-The firmware for the ESP32 was developed using the Arduino framework in PlatformIO. The code is modular, with separate files for handling sensors, the display, pump control, Wi-Fi connectivity, and data logging.
-
-The `sensors.cpp` module is responsible for initializing and reading data from all the sensors. To ensure stable readings, a moving average filter is applied to the analog pH sensor data. The `display.cpp` module manages the TFT display, rendering real-time data and status indicators with color codes (green for optimal, yellow for warning, red for critical).
-
-The `pump_control.cpp` module implements the logic for automated pump cycling and pH control. The main circulation pump operates on a configurable timer (defaulting to 15 minutes on, 45 minutes off). The pH control system uses a feedback loop to maintain the pH within a target range, activating the pH up or down pumps as needed.
-
-The `wifi_server.cpp` module handles the Wi-Fi connection and sets up an asynchronous web server. This server exposes a JSON API for retrieving real-time sensor data and provides a simple web page for manual control of the system.
-
-Finally, the `data_logger.cpp` module is responsible for logging sensor data to a Supabase cloud database every five minutes. This allows for long-term data storage and analysis. The database schema is defined in the `supabase_schema.sql` file.
-
-2.3. Mobile Application
-A mobile application for Android was developed using React Native. The app provides a user-friendly interface for interacting with the Smart Hydroponic Tower. It features three main screens:
-*   **Dashboard:** Displays real-time sensor data, a visualization of the tower, and manual pump controls (Figure 2a).
-*   **Plotting:** Shows historical data from the Supabase database in interactive charts, allowing users to visualize trends over different time periods (day, week, month) (Figure 2b).
-*   **Settings:** Allows users to configure the pump automation cycles and pH control parameters.
-
-The application communicates with the ESP32 via its JSON API for real-time data and control, and it fetches historical data directly from the Supabase backend.
-
 3. Results
 The Smart Hydroponic Tower system was successfully assembled and tested. The system demonstrated reliable and autonomous operation, maintaining the set parameters for the hydroponic environment.
 
@@ -87,16 +27,8 @@ The modular design of both the hardware and software makes the system flexible a
 5. Conclusions
 This paper has presented a low-cost, IoT-based Smart Hydroponic Tower that automates the process of plant growth monitoring and control. The system, which includes a custom PCB, an ESP32-based control unit, and a React Native mobile application, provides a practical and effective solution for maintaining optimal growing conditions in a hydroponic setup. The successful implementation and testing of the system highlight the potential of IoT technologies to revolutionize agriculture, making it more efficient, data-driven, and accessible.
 
-Author Contributions: Conceptualization, V.Z.; methodology, V.Z.; software, V.Z.; validation, V.Z. and J.D.; formal analysis, V.Z.; investigation, V.Z.; resources, V.Z.; data curation, V.Z.; writing—original draft preparation, V.Z.; writing—review and editing, V.Z. and J.D.; visualization, V.Z.; supervision, V.Z.; project administration, V.Z. All authors have read and agreed to the published version of the manuscript.
+Author Contributions: Conceptualization, E.P.; methodology, V.Z.; software, V.Z.; validation, V.Z.; formal analysis, V.Z.; investigation, V.Z.; resources, E.P.; data curation, V.Z.; writing—original draft preparation, V.Z.; writing—review and editing, V.Z. and S.P.; visualization, V.Z.; supervision, S.P.; project administration, E.P. All authors have read and agreed to the published version of the manuscript.
 
 Funding: This research received no external funding.
 
 Data Availability Statement: The data presented in this study are available on request from the corresponding author. The source code for the ESP32 firmware and the React Native application is available in the project's GitHub repository.
-
-Conflicts of Interest: The authors declare no conflicts of interest.
-
-References
-1.	Jones, J.B., Jr. Hydroponics: A Practical Guide for the Soilless Grower, 2nd ed.; CRC Press: Boca Raton, FL, USA, 2005.
-2.	Resh, H.M. Hydroponic Food Production: A Definitive Guidebook for the Advanced Home Gardener and the Commercial Hydroponic Grower, 7th ed.; CRC Press: Boca Raton, FL, USA, 2013.
-3.	Kamilaris, A.; Prenafeta-Boldú, F.X. Deep learning in agriculture: A survey. Comput. Electron. Agric. 2018, 147, 70–90.
-4.	Zoidis, V. Smart Hydroponic Tower. GitHub. Available online: https://github.com/vgzoidis/Smart_Hydroponic_Tower (accessed on 17 September 2025).
