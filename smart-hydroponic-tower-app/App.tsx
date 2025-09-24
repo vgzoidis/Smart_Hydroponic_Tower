@@ -135,6 +135,9 @@ function App(): JSX.Element {
   const lightStatus = getSensorStatus(sensorData.lightLevel, 10, 40000);
   const co2Status = getSensorStatus(sensorData.co2Level, 200, 1800);
 
+  // Water level status: 'critical' when water level is low (false)
+  const waterLevelStatus = sensorData.waterLevel ? 'good' : 'critical';
+
   // Overall system status
   const allStatuses = [
     waterTempStatus,
@@ -144,6 +147,7 @@ function App(): JSX.Element {
     humidityStatus,
     lightStatus,
     co2Status,
+    waterLevelStatus, // Include water level status
   ];
   const overallStatus = allStatuses.includes('critical')
     ? 'critical'
