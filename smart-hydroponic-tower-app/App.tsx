@@ -127,11 +127,11 @@ function App(): JSX.Element {
   }, [fetchSensorData]); // Add fetchSensorData to dependency array
 
   // Calculate statuses
-  const waterTempStatus = getSensorStatus(sensorData.waterTemp, 15, 25);
-  const phStatus = getSensorStatus(sensorData.waterPH, 5.0, 7.0);
-  const ecStatus = getSensorStatus(sensorData.ecLevel, 0.8, 2.5);
-  const tempStatus = getSensorStatus(sensorData.envTemp, 13, 30);
-  const humidityStatus = getSensorStatus(sensorData.humidity, 35, 85);
+  const waterTempStatus = getSensorStatus(sensorData.waterTemp, 18, 22);
+  const phStatus = getSensorStatus(sensorData.waterPH, 5.5, 6.5);
+  const ecStatus = getSensorStatus(sensorData.ecLevel, 0.8, 1.2);
+  const tempStatus = getSensorStatus(sensorData.envTemp, 15, 28);
+  const humidityStatus = getSensorStatus(sensorData.humidity, 50, 70);
   const lightStatus = getSensorStatus(sensorData.lightLevel, 10, 40000);
   const co2Status = getSensorStatus(sensorData.co2Level, 200, 1800);
 

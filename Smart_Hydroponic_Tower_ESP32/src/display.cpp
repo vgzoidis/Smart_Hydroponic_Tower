@@ -55,13 +55,13 @@ void drawSensorStatus() {
   // Get all status colors at the start (EDIT THESE FOR YOUR SENSOR RANGES)
   uint16_t waterTempColor  = getStatusColor(currentSensors.waterTemp, 18, 22, 15, 25, 12, 28);
   uint16_t phColor         = getStatusColor(currentSensors.waterPH, 5.5, 6.5, 5, 7, 4, 8);
-  uint16_t waterECColor    = getStatusColor(currentSensors.waterEC, 1.2, 2.0, 0.8, 2.5, 0.5, 3.0);
+  uint16_t waterECColor    = getStatusColor(currentSensors.waterEC, 0.8, 1.2, 0.6, 1.8, 0.3, 2.5);
   uint16_t waterLevelColor = getStatusColor(currentSensors.waterLevel);
   uint16_t pumpStatusColor = getStatusColor(currentSensors.pumpStatus);
-  uint16_t envTempColor    = getStatusColor(currentSensors.envTemp, 15, 25, 13, 30, 10, 33);
+  uint16_t envTempColor    = getStatusColor(currentSensors.envTemp, 15, 28, 13, 32, 10, 35);
   uint16_t humidityColor   = getStatusColor(currentSensors.envHumidity, 50, 70, 35, 85, 25, 95);
   uint16_t lightColor      = getStatusColor(currentSensors.lightLevel, 10, 40000, 5, 50000, 2, 90000);
-  uint16_t co2Color        = getStatusColor(currentSensors.co2Level, 400, 1500, 200, 1800, 100, 2200);
+  uint16_t co2Color        = getStatusColor(currentSensors.co2Level, 200, 1800, 100, 2200, 50, 3000);
 
   // Clear previous values (draw in BLACK)
   gfx->setTextSize(1);

@@ -752,37 +752,37 @@ export const SettingsScreen: React.FC = () => {
         
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>Environment Temperature:</Text>
-          <Text style={styles.sensorRange}>20°C - 26°C</Text>
+          <Text style={styles.sensorRange}>15°C - 28°C</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>Humidity:</Text>
-          <Text style={styles.sensorRange}>40% - 60%</Text>
+          <Text style={styles.sensorRange}>50% - 70%</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>Light Level:</Text>
-          <Text style={styles.sensorRange}>150 - 300 lux</Text>
+          <Text style={styles.sensorRange}>10 - 40,000 lux</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>CO₂ Level:</Text>
-          <Text style={styles.sensorRange}>400 - 1000 ppm</Text>
+          <Text style={styles.sensorRange}>200 - 1,800 ppm</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>Water Temperature:</Text>
-          <Text style={styles.sensorRange}>18°C - 25°C</Text>
+          <Text style={styles.sensorRange}>18°C - 22°C</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>pH Level:</Text>
-          <Text style={styles.sensorRange}>5.5 - 7.0</Text>
+          <Text style={styles.sensorRange}>5.5 - 6.5</Text>
         </View>
 
         <View style={styles.sensorRangeItem}>
           <Text style={styles.sensorLabel}>EC Level:</Text>
-          <Text style={styles.sensorRange}>1.2 - 2.0 mS/cm</Text>
+          <Text style={styles.sensorRange}>0.8 - 1.2 mS/cm</Text>
         </View>
       </View>
     </ScrollView>

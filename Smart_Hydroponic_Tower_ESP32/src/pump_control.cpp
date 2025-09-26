@@ -20,7 +20,7 @@ PumpConfig pumpConfig = {
 #define PH_TARGET_DEFAULT 6.0        // Default target pH value
 #define PH_TOLERANCE_DEFAULT 0.5     // Default acceptable range around target (±0.5)
 #define PH_DEADBAND 0.2      // Dead band to prevent oscillation
-#define PH_PUMP_ON_TIME 5000 // pH pump on time in milliseconds (5 seconds)
+#define PH_PUMP_ON_TIME 10000 // pH pump on time in milliseconds (10  seconds)
 #define PH_PUMP_COOLDOWN 60000 // Cooldown between pH adjustments (60 seconds)
 
 // pH Control Variables
