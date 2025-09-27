@@ -89,7 +89,9 @@ bool uploadSensorData(const SensorData& data) {
       break; // Success!
     } else {
       if (attempts < MAX_RETRY_ATTEMPTS) {
-        delay(1000); // Wait 1 second before retry
+        // Exponential backoff: 1s, 2s, 4s, 8s...
+        unsigned long backoffDelay = 1000 * (1 << (attempts - 1));
+        delay(backoffDelay);
       }
     }
   }
