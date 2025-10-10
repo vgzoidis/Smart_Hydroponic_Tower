@@ -14,7 +14,7 @@ PumpConfig pumpConfig = {
 #define PUMP_PWM_CHANNEL 0
 #define PUMP_PWM_FREQ 1000
 #define PUMP_PWM_RES 8
-#define PUMP_PWM_ON_DUTY ((int)(0.4 * 255)) // 40% duty cycle
+#define PUMP_PWM_ON_DUTY ((int)(0.6 * 255)) // 60% duty cycle
 
 // pH Control Parameters
 #define PH_TARGET_DEFAULT 6.0        // Default target pH value
