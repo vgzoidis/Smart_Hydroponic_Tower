@@ -205,8 +205,8 @@ pio run
 Edit `src/wifi_server.cpp`:
 ```cpp
 // WiFi credentials - UPDATE THESE FOR YOUR NETWORK!
-const char* ssid = "YourWiFiNetwork";
-const char* password = "YourWiFiPassword";
+const char* ssid = "WlanName";
+const char* password = "Password";
 
 // Static IP configuration (optional but recommended)
 IPAddress staticIP(192, 168, 1, 100);  // Change to your network
