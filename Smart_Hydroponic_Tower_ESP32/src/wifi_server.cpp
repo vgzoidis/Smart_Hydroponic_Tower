@@ -5,8 +5,8 @@
 #include "data_logger.h"
 
 // WiFi credentials - UPDATE THESE FOR DIFFERENT NETWORKS!
-const char* ssid = "WLAN-ITI4";
-const char* password = "Iti.Wireless3";
+const char* ssid = "WLAN-NAME";
+const char* password = "WLAN-PASSWORD";
 
 // Static IP configuration (change if setting up on a new network except last octet of static IP)
 IPAddress staticIP(160, 40, 48, 23); // ESP32 static IP
