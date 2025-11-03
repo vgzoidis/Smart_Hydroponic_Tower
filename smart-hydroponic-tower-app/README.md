@@ -444,9 +444,9 @@ SOFTWARE.
 -  **NEW**: Timezone correction for EET/EEST timestamps
 
 **Future features**:
-- **iOS** support
 - **Push Notifications**: Real-time alerts for critical conditions
 - **Export Functionality**: CSV/PDF export of historical data
--  **Configurable**: optimal variable ranges (from the settings tab)
--  **Multi-timezone Support**: Configurable timezone settings
+- **Configurable**: optimal variable ranges (from the settings tab)
+- **Multi-timezone Support**: Configurable timezone settings
 - **Multiple tower Support**: Ability to manage more than one towers
+- **iOS** support
