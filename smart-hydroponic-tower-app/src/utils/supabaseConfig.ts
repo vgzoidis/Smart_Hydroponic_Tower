@@ -3,8 +3,8 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase Configuration
-const SUPABASE_URL = 'https://jnvbsbphxvypcuorolen.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudmJzYnBoeHZ5cGN1b3JvbGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMDY4MjEsImV4cCI6MjA3MTc4MjgyMX0.S0MrRcN_fNfTdIeIRPO6uqB7QfpwtY4vIchLpr8tTH0';
+const SUPABASE_URL = 'https://link.supabase.co';
+const SUPABASE_ANON_KEY = 'anon-key';
 
 // Interface for sensor data stored in Supabase
 export interface SensorDataRecord {
